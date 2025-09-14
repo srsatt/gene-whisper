@@ -1,5 +1,5 @@
 import { addDocument as addDocImpl, ragSearch as ragImpl } from './rag'
-import { loadChat } from './models'
+import { generateWebLlm } from './weblm'
 
 export const addDocument = async ({ title, text }: { title: string; text: string }) => {
   return addDocImpl(title, text)
@@ -11,10 +11,9 @@ export const ragSearch = async ({ query }: { query: string }) => {
 }
 
 export const summarize = async ({ text }: { text: string }) => {
-  const { chat } = await loadChat()
   const prompt = `Summarize the following text in 3-5 bullet points.\n\n${text}`
-  const out = await chat(prompt, { max_new_tokens: 256, temperature: 0.3 })
-  return String(out)
+  const out = await generateWebLlm(prompt)
+  return out
 }
 
 

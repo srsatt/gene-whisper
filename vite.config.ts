@@ -9,6 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB limit
+      },
       manifest: {
         name: 'Generic LLM RAG',
         short_name: 'LLM-RAG',

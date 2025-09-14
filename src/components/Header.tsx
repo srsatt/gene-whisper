@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { clsx } from 'clsx'
+import clsx from 'clsx'
 
 export function Header() {
   const [online, setOnline] = useState<boolean>(navigator.onLine)

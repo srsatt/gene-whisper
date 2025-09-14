@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { db } from '../db'
 
 export function SettingsPage() {
@@ -6,9 +6,17 @@ export function SettingsPage() {
   const [embedModel, setEmbedModel] = useState<string>('google/embedding-gemma-2b')
   const [temperature, setTemperature] = useState<number>(0.3)
   const [maxTokens, setMaxTokens] = useState<number>(512)
+  const [hfToken, setHfToken] = useState<string>('')
+
+  useEffect(() => {
+    const t = localStorage.getItem('hf_token')
+    if (t) setHfToken(t)
+  }, [])
 
   const save = async () => {
     await db.kv.put({ key: 'settings', value: { chatModel, embedModel, temperature, maxTokens } })
+    if (hfToken) localStorage.setItem('hf_token', hfToken)
+    else localStorage.removeItem('hf_token')
     alert('Saved')
   }
 
@@ -28,6 +36,8 @@ export function SettingsPage() {
         <input type="number" step="0.1" className="border rounded px-3 py-2" value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))} />
         <label className="text-sm">Max tokens</label>
         <input type="number" className="border rounded px-3 py-2" value={maxTokens} onChange={(e) => setMaxTokens(parseInt(e.target.value))} />
+        <label className="text-sm">Hugging Face token (optional)</label>
+        <input className="border rounded px-3 py-2" value={hfToken} onChange={(e) => setHfToken(e.target.value)} placeholder="hf_..." />
         <div className="flex gap-2">
           <button className="px-3 py-2 bg-blue-600 text-white rounded" onClick={save}>
             Save

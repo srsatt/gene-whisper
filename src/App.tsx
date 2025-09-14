@@ -6,22 +6,26 @@ import { ChatPage } from './pages/Chat'
 import { LibraryPage } from './pages/Library'
 import { AssetsPage } from './pages/Assets'
 import { SettingsPage } from './pages/Settings'
+import { Theme } from '@radix-ui/themes'
+import '@radix-ui/themes/styles.css'
 
 function App() {
   const [tab, setTab] = useState<'Chat' | 'Library' | 'Assets' | 'Settings'>('Chat')
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="mt-2" />
-      <Tabs onChange={setTab} />
-      <div className="flex-1">
-        {tab === 'Chat' && <ChatPage />}
-        {tab === 'Library' && <LibraryPage />}
-        {tab === 'Assets' && <AssetsPage />}
-        {tab === 'Settings' && <SettingsPage />}
+    <Theme>
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <div className="mt-2" />
+        <Tabs onChange={setTab} />
+        <div className="flex-1 overflow-hidden">
+          {tab === 'Chat' && <ChatPage />}
+          {tab === 'Library' && <LibraryPage />}
+          {tab === 'Assets' && <AssetsPage />}
+          {tab === 'Settings' && <SettingsPage />}
+        </div>
       </div>
-    </div>
+    </Theme>
   )
 }
 

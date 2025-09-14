@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react'
-import { db } from '../db'
+import { db, type DocumentRecord } from '../db'
 import { addDocument } from '../rag'
 
 export function LibraryPage() {
   const [title, setTitle] = useState('')
   const [text, setText] = useState('')
-  const [docs, setDocs] = useState(await db.documents.toArray())
+  const [docs, setDocs] = useState<DocumentRecord[]>([])
 
   useEffect(() => {
-    const sub = db.documents.toCollection().each(() => {})
-    ;(async () => setDocs(await db.documents.toArray()))()
-    return () => {
-      // no live query here; simple refresh on actions
-    }
+    ;(async () => {
+      const all = await db.documents.toArray()
+      setDocs(all)
+    })()
   }, [])
 
   const add = async () => {

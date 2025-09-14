@@ -19,7 +19,8 @@ export const addDocument = async (title: string, text: string) => {
   const id = crypto.randomUUID()
   const chunks = chunkText(text)
   const { embed } = await loadEmbedder()
-  const vectors = await embed(chunks)
+  const DOC_PREFIX = 'title: none | text: '
+  const vectors = await embed(chunks.map((c) => DOC_PREFIX + c))
   const doc: DocumentRecord = {
     id,
     title,
@@ -46,7 +47,8 @@ const cosineSim = (a: number[], b: number[]): number => {
 
 export const ragSearch = async (query: string, k = 6) => {
   const { embed } = await loadEmbedder()
-  const [q] = await embed([query])
+  const QUERY_PREFIX = 'task: search result | query: '
+  const [q] = await embed([QUERY_PREFIX + query])
   const docs = await db.documents.toArray()
   const scored: Array<{ score: number; text: string; docId: string; title: string }> = []
   for (const d of docs) {

@@ -1,63 +1,83 @@
-import { pipeline, env, type TextGenerationPipeline, type FeatureExtractionPipeline } from '@xenova/transformers'
+// src/models.ts
 
-export type ChatModelId =
-  | 'google/medgemma-4b-it'
-  | 'onnx-community/Qwen2.5-0.5B-Instruct'
+export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';
 
-export type EmbedModelId =
-  | 'onnx-community/embeddinggemma-300m-ONNX'
-  | 'Xenova/bge-small-en-v1.5'
-  | 'google/embedding-gemma-2b'
+export type EvidenceLevel = 'A' | 'B' | 'C';
 
-export type RuntimeInfo = {
-  backend: 'webgpu' | 'wasm'
+export type RiskLevel = 'Low' | 'Moderate' | 'High';
+
+export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';
+
+export interface Demographics {
+  sexAtBirth?: SexAtBirth;
+  age?: number;
+  weight?: number;
 }
 
-// Optional: read HF token from localStorage for gated models
-const hfToken = typeof localStorage !== 'undefined' ? localStorage.getItem('hf_token') ?? undefined : undefined
-if (hfToken) (env as any).HF_TOKEN = hfToken
-
-// Configure wasm paths to CDN to ensure correct MIME type
-env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/'
-
-// Allow local model loading (e.g. /public/models/...)
-env.allowLocalModels = true
-
-const resolveDevice = async (): Promise<RuntimeInfo> => {
-  const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator
-  return { backend: hasWebGPU ? 'webgpu' : 'wasm' }
+export interface WhatIf {
+  id: string;
+  label: string;
+  type: 'toggle' | 'slider';
+  currentValue: number | boolean;
+  range?: [number, number];
+  step?: number;
+  unit?: string;
 }
 
-export const loadChat = async (preferred: ChatModelId = 'google/medgemma-4b-it') => {
-  const { backend } = await resolveDevice()
-  try {
-    const chat = (await pipeline('text-generation', preferred)) as TextGenerationPipeline
-    return { chat, modelId: preferred, backend }
-  } catch {
-    const fallback: ChatModelId = 'onnx-community/Qwen2.5-0.5B-Instruct'
-    const chat = (await pipeline('text-generation', fallback)) as TextGenerationPipeline
-    return { chat, modelId: fallback, backend }
-  }
+export interface Action {
+  id: string;
+  title: string;
+  description: string;
+  evidenceLevel: EvidenceLevel;
+  category: 'lifestyle' | 'screening' | 'supplement' | 'medical';
 }
 
-export const loadEmbedder = async (
-  preferred: EmbedModelId = 'onnx-community/embeddinggemma-300m-ONNX',
-) => {
-  const { backend } = await resolveDevice()
-  let modelId: EmbedModelId = preferred
-  let extractor: FeatureExtractionPipeline
-  try {
-    extractor = (await pipeline('feature-extraction', preferred)) as FeatureExtractionPipeline
-  } catch {
-    modelId = 'Xenova/bge-small-en-v1.5'
-    extractor = (await pipeline('feature-extraction', modelId)) as FeatureExtractionPipeline
-  }
-  const embed = async (texts: string[]): Promise<number[][]> => {
-    const embeddings = await extractor(texts, { pooling: 'mean', normalize: true })
-    const data = embeddings.tolist() as number[][]
-    return data
-  }
-  return { embed, modelId, backend }
+export interface Finding {
+  id: string;
+  title: string;
+  summary: string;
+  rsIds: string[];
+  riskLevel: RiskLevel;
+  evidenceLevel: EvidenceLevel;
+  baseRiskScore: number; // 0-100
+  absoluteRisk?: string;
+  category: 'trait' | 'disease';
+  actions: Action[];
+  whatIf: WhatIf[];
+  uncertaintyRange?: [number, number];
 }
 
+export interface Report {
+  id: string;
+  vendor: Vendor;
+  quality: 'High' | 'Medium' | 'Low';
+  generatedAt: Date;
+  findings: Finding[];
+  demographics?: Demographics;
+}
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  findingContext?: {
+    findingId: string;
+    title: string;
+    riskLevel: RiskLevel;
+    rsIds: string[];
+  };
+}
+
+export interface AppState {
+  phase: 'upload' | 'processing' | 'report';
+  demographics: Demographics;
+  uploadedFile?: File;
+  report?: Report;
+  selectedFindingId?: string;
+  chatMessages: ChatMessage[];
+  uiPreferences: {
+    evidenceExpanded: Record<EvidenceLevel, boolean>;
+    chatOpen: boolean;
+  };
+}

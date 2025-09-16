@@ -1,4 +1,6 @@
-// src/models.ts
+import {env} from '@xenova/transformers'
+import { getWebLlmEngine, type WebLlmConfig } from './weblm'
+import type { MLCEngineInterface } from '@mlc-ai/web-llm'
 
 export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';
 
@@ -7,6 +9,18 @@ export type EvidenceLevel = 'A' | 'B' | 'C';
 export type RiskLevel = 'Low' | 'Moderate' | 'High';
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';
+export type ChatModel = {
+  engine: MLCEngineInterface
+  modelId: string;
+  backend: 'webgpu'
+}
+
+// Optional: read HF token from localStorage for gated models
+const hfToken = typeof localStorage !== 'undefined' ? localStorage.getItem('hf_token') ?? undefined : undefined
+if (hfToken) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (env as any).HF_TOKEN = hfToken
+}
 
 export interface Demographics {
   sexAtBirth?: SexAtBirth;

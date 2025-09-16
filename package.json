@@ -16,7 +16,6 @@
     "@assistant-ui/react-ai-sdk": "^1.1.0",
     "@assistant-ui/react-markdown": "^0.11.0",
     "@assistant-ui/styles": "^0.2.1",
-    "@built-in-ai/web-llm": "^0.2.2",
     "@mlc-ai/web-llm": "^0.2.79",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",

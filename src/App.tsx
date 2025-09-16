@@ -18,6 +18,7 @@ import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
 import DNABackground from "./components/DNABackground";
+import PrivacyToast from "./components/PrivacyToast";
 
 // Mock report generator
 async function generateReportMock(demographics: Demographics): Promise<Report> {
@@ -671,7 +672,7 @@ function AppContent() {
       <DNABackground />
 
       {/* Global disclaimer banner */}
-      <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200 px-4 py-2">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-50 border-b border-yellow-200 px-4 py-2">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center space-x-2">
             <svg
@@ -697,6 +698,9 @@ function AppContent() {
 
       {/* Main content */}
       <div className="relative z-10">{renderCurrentPhase()}</div>
+
+      {/* Privacy Toast */}
+      <PrivacyToast />
     </div>
   );
 }

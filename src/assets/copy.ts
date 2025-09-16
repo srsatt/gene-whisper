@@ -2,7 +2,7 @@
 
 export const DISCLAIMER_TOP = "This is not medical advice. Always consult your physician.";
 
-export const UPLOAD_HELPER = "Supported files: .txt, .vcf. All data remains private and is processed locally in your browser.";
+export const UPLOAD_HELPER = "Supported files: 23andMe, Ancestry, MyHeritage";
 
 export const START_HELPER = "Processing takes about ~1 minute.";
 

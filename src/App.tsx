@@ -17,6 +17,7 @@ import { formatAbsoluteRisk } from "./tools";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
+import DNABackground from "./components/DNABackground";
 
 // Mock report generator
 async function generateReportMock(demographics: Demographics): Promise<Report> {
@@ -665,7 +666,10 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen relative">
+      {/* DNA Background */}
+      <DNABackground />
+
       {/* Global disclaimer banner */}
       <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200 px-4 py-2">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -692,7 +696,7 @@ function AppContent() {
       </div>
 
       {/* Main content */}
-      {renderCurrentPhase()}
+      <div className="relative z-10">{renderCurrentPhase()}</div>
     </div>
   );
 }

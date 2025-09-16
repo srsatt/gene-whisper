@@ -12,12 +12,7 @@ import type {
   WhatIf,
 } from "./models";
 import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
-import {
-  getDemographics,
-  saveDemographics,
-  saveReport,
-  clearAllData,
-} from "./db";
+import { getDemographics, saveDemographics, saveReport } from "./db";
 import { formatAbsoluteRisk } from "./tools";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
@@ -391,8 +386,7 @@ type AppAction =
   | { type: "SET_SELECTED_FINDING"; findingId?: string }
   | { type: "ADD_CHAT_MESSAGE"; message: ChatMessage }
   | { type: "TOGGLE_EVIDENCE_EXPANDED"; level: "A" | "B" | "C" }
-  | { type: "SET_CHAT_OPEN"; open: boolean }
-  | { type: "CLEAR_ALL_DATA" };
+  | { type: "SET_CHAT_OPEN"; open: boolean };
 
 // Reducer
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -439,18 +433,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
 
-    case "CLEAR_ALL_DATA":
-      clearAllData();
-      return {
-        ...state,
-        phase: "upload",
-        demographics: getDemographics(),
-        uploadedFile: undefined,
-        report: undefined,
-        selectedFindingId: undefined,
-        chatMessages: [],
-      };
-
     default:
       return state;
   }
@@ -465,68 +447,41 @@ function useAppContext() {
   return context;
 }
 
-// Settings dropdown component
-function SettingsDropdown() {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const { dispatch } = useAppContext();
+// Hook to detect online/offline status
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  return isOnline;
+}
+
+// Online status component
+function OnlineStatus() {
+  const isOnline = useOnlineStatus();
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
-        aria-label="Settings"
-      >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-          <div className="py-1">
-            <button
-              onClick={() => {
-                if (
-                  confirm(
-                    "This will delete all your data and return to the upload page. Are you sure?"
-                  )
-                ) {
-                  dispatch({ type: "CLEAR_ALL_DATA" });
-                }
-                setIsOpen(false);
-              }}
-              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-            >
-              Delete all data
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+    <div className="flex items-center space-x-1">
+      <div
+        className={`w-2 h-2 rounded-full ${
+          isOnline ? "bg-green-500" : "bg-red-500"
+        }`}
+        aria-hidden="true"
+      />
+      <span className="text-xs font-medium text-yellow-800">
+        {isOnline ? "Online" : "Offline"}
+      </span>
     </div>
   );
 }
@@ -730,7 +685,9 @@ function AppContent() {
               {DISCLAIMER_TOP}
             </p>
           </div>
-          <SettingsDropdown />
+          <div className="flex items-center">
+            <OnlineStatus />
+          </div>
         </div>
       </div>
 

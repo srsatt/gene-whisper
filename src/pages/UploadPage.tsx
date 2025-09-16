@@ -1,6 +1,7 @@
 // src/pages/UploadPage.tsx
 
 import React from "react";
+import { HelpCircle } from "lucide-react";
 import type { Demographics } from "../models";
 import { UPLOAD_HELPER, START_HELPER } from "../assets/copy";
 import FileDropzone from "../components/FileDropzone";
@@ -48,20 +49,29 @@ export default function UploadPage({
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             Upload Your DNA Data
           </h1>
-          <p className="text-lg text-gray-600 mb-6">
+          <p className="text-lg text-gray-600">
             Get personalized genetic insights from your raw DNA data
           </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">{UPLOAD_HELPER}</p>
-          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
           {/* File Upload */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              1. Upload Your DNA File
-            </h2>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-lg font-semibold text-gray-900">
+                1. Upload Your DNA File
+              </h2>
+              <div className="relative group">
+                <HelpCircle
+                  className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help transition-colors"
+                  aria-label="File format information"
+                />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                  {UPLOAD_HELPER}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                </div>
+              </div>
+            </div>
             <FileDropzone
               selectedFile={selectedFile}
               onFileSelect={onFileSelect}
@@ -82,7 +92,7 @@ export default function UploadPage({
           </div>
 
           {/* Start Processing */}
-          <div className="pt-6 border-t border-gray-200">
+          <div>
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <button

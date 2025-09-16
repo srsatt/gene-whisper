@@ -1,7 +1,7 @@
 // src/components/FileDropzone.tsx
 
-import React, { useCallback, useState } from 'react';
-import { cn } from '../tools';
+import React, { useCallback, useState } from "react";
+import { cn } from "../tools";
 
 interface FileDropzoneProps {
   onFileSelect: (file: File) => void;
@@ -9,43 +9,56 @@ interface FileDropzoneProps {
   disabled?: boolean;
 }
 
-export default function FileDropzone({ onFileSelect, selectedFile, disabled }: FileDropzoneProps) {
+export default function FileDropzone({
+  onFileSelect,
+  selectedFile,
+  disabled,
+}: FileDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    if (disabled) return;
-    
-    const files = Array.from(e.dataTransfer.files);
-    const validFile = files.find(file => 
-      file.name.endsWith('.txt') || file.name.endsWith('.vcf')
-    );
-    
-    if (validFile) {
-      onFileSelect(validFile);
-    }
-  }, [onFileSelect, disabled]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled) {
-      setIsDragOver(true);
-    }
-  }, [disabled]);
+      if (disabled) return;
+
+      const files = Array.from(e.dataTransfer.files);
+      const validFile = files.find(
+        (file) => file.name.endsWith(".txt") || file.name.endsWith(".vcf")
+      );
+
+      if (validFile) {
+        onFileSelect(validFile);
+      }
+    },
+    [onFileSelect, disabled]
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!disabled) {
+        setIsDragOver(true);
+      }
+    },
+    [disabled]
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
   }, []);
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFileSelect(file);
-    }
-  }, [onFileSelect]);
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        onFileSelect(file);
+      }
+    },
+    [onFileSelect]
+  );
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -80,7 +93,7 @@ export default function FileDropzone({ onFileSelect, selectedFile, disabled }: F
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           aria-label="Choose DNA file"
         />
-        
+
         <div className="space-y-2">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
@@ -96,13 +109,13 @@ export default function FileDropzone({ onFileSelect, selectedFile, disabled }: F
               strokeLinejoin="round"
             />
           </svg>
-          
+
           {selectedFile ? (
             <div className="space-y-1">
               <p className="text-sm font-medium text-green-600">
                 ✓ {selectedFile.name}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm text-gray-500">
                 {formatFileSize(selectedFile.size)}
               </p>
             </div>

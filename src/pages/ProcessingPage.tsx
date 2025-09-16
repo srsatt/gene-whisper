@@ -34,8 +34,8 @@ export default function ProcessingPage({
   }, []);
 
   return (
-    <div className="min-h-screen py-8 pt-24">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="py-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             Processing Your DNA Data
@@ -69,7 +69,7 @@ export default function ProcessingPage({
           )}
 
           {/* Progress bar */}
-          <div className="mb-6 mt-10">
+          <div className="mb-6 mt-4">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
               <span>{LOADER_LINES[currentLineIndex]}</span>
               <span>{Math.round(progress)}%</span>
@@ -143,7 +143,7 @@ export default function ProcessingPage({
         </div>
       </div>
       {/* Cancel button */}
-      <div className="text-center mt-5">
+      <div className="text-center pt-4">
         <button
           onClick={onCancel}
           className="text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus:underline"

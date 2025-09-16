@@ -34,7 +34,7 @@ export default function ReportPage({
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 mt-9">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* Header with back button */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -115,7 +115,7 @@ export default function ReportPage({
       </div>
 
       {/* Report content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1">
         <ReportLayout
           report={report}
           selectedFindingId={selectedFindingId}

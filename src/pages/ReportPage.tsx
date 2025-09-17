@@ -33,6 +33,11 @@ export default function ReportPage({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Scroll to top when report page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header with back button */}
@@ -90,7 +95,7 @@ export default function ReportPage({
             </button>
 
             {/* Settings dropdown */}
-            <div className="relative">
+            {/* <div className="relative">
               <button
                 className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                 aria-label="Report settings"
@@ -109,7 +114,7 @@ export default function ReportPage({
                   />
                 </svg>
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

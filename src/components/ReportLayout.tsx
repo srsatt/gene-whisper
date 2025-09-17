@@ -211,7 +211,7 @@ export default function ReportLayout({
     Record<EvidenceLevel, boolean>
   >({
     A: true,
-    B: true,
+    B: false,
     C: false,
   });
   const [chatOpen, setChatOpen] = useState(false);

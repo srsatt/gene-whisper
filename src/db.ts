@@ -82,7 +82,7 @@ export function getUIPreferences(): UIPreferences {
     console.warn('Failed to get UI preferences:', error);
   }
   return {
-    evidenceExpanded: { A: true, B: true, C: false },
+    evidenceExpanded: { A: true, B: false, C: false },
     chatOpen: false
   };
 }

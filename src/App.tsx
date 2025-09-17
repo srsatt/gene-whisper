@@ -744,7 +744,7 @@ function App() {
     demographics: getDemographics(),
     chatMessages: [],
     uiPreferences: {
-      evidenceExpanded: { A: true, B: true, C: false },
+      evidenceExpanded: { A: true, B: false, C: false },
       chatOpen: false,
     },
   };

@@ -58,7 +58,7 @@ export function getLastReport(): Report | null {
 }
 
 export interface UIPreferences {
-  sectionsExpanded: Record<StarRating, boolean>;
+  sectionsExpanded: Record<StarRating | 'PRS', boolean>;
   chatOpen: boolean;
 }
 
@@ -82,7 +82,7 @@ export function getUIPreferences(): UIPreferences {
     console.warn('Failed to get UI preferences:', error);
   }
   return {
-    sectionsExpanded: { "4 Stars": true, "3 Stars": true, "1 Star": false },
+    sectionsExpanded: { "4 Stars": true, "3 Stars": true, "1 Star": false, "PRS": true },
     chatOpen: false
   };
 }

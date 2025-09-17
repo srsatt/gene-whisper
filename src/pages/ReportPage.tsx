@@ -1,7 +1,6 @@
 // src/pages/ReportPage.tsx
 
 import { useEffect } from "react";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import type { Report, ChatMessage } from "../models";
 import ReportLayout from "../components/ReportLayout";
 
@@ -122,6 +121,7 @@ export default function ReportPage({
           chatMessages={chatMessages}
           onDiscuss={onDiscuss}
           onSendMessage={onSendMessage}
+          prsResults={report.prsResults}
         />
       </div>
     </div>

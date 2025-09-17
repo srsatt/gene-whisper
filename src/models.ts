@@ -42,6 +42,7 @@ export interface Report {
   generatedAt: Date;
   mutations: Mutation[];
   demographics?: Demographics;
+  prsResults?: import('./prs').PRSResult[];
 }
 
 export interface ChatMessage {
@@ -64,7 +65,7 @@ export interface AppState {
   selectedMutationId?: string;
   chatMessages: ChatMessage[];
   uiPreferences: {
-    sectionsExpanded: Record<StarRating, boolean>;
+    sectionsExpanded: Record<StarRating | 'PRS', boolean>;
     chatOpen: boolean;
   };
 }

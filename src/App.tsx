@@ -15,6 +15,7 @@ import {
   findSharedVariants,
   convertToMutations,
 } from "./variant_tools";
+import { calculateAllPrs, type PRSResult } from "./prs";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
@@ -24,10 +25,38 @@ import SystemRequirementsToast from "./components/SystemRequirementsToast";
 import MobileErrorScreen from "./components/MobileErrorScreen";
 import { useIsMobile } from "./utils/device";
 
+// Load PRS data files
+async function loadPRSData() {
+  console.log("Loading PRS data files...");
+
+  const [configResponse, indexResponse, weightsResponse] = await Promise.all([
+    fetch("/data_files/prs_config.json"),
+    fetch("/data_files/prs_23andme_index_map.json"),
+    fetch("/data_files/prs_weights.json"),
+  ]);
+
+  if (!configResponse.ok || !indexResponse.ok || !weightsResponse.ok) {
+    throw new Error("Failed to load PRS data files");
+  }
+
+  const [prsConfigs, indexMap, allWeights] = await Promise.all([
+    configResponse.json(),
+    indexResponse.json(),
+    weightsResponse.json(),
+  ]);
+
+  console.log(`Loaded ${prsConfigs.length} PRS configurations`);
+  console.log(`Loaded index map with ${Object.keys(indexMap).length} variants`);
+  console.log(`Loaded weights for ${allWeights.length} PRS models`);
+
+  return { prsConfigs, indexMap, allWeights };
+}
+
 // Real report generator using genetic analysis results
 async function generateRealReport(
   sharedVariants: any[],
-  demographics: Demographics
+  demographics: Demographics,
+  parsedVariants: Record<string, any>
 ): Promise<Report> {
   // Convert shared variants to mutations format
   const mutations = convertToMutations(sharedVariants);
@@ -45,12 +74,29 @@ async function generateRealReport(
   console.log(`  - From ${clinvarCount} ClinVar variants (medical conditions)`);
   console.log(`  - From ${snpediaCount} SNPedia variants (genetic traits)`);
 
+  // Calculate PRS scores
+  let prsResults: PRSResult[] = [];
+  try {
+    const { prsConfigs, indexMap, allWeights } = await loadPRSData();
+    prsResults = calculateAllPrs(
+      parsedVariants,
+      indexMap,
+      prsConfigs,
+      allWeights
+    );
+    console.log(`Calculated ${prsResults.length} PRS scores`);
+  } catch (error) {
+    console.error("Failed to calculate PRS scores:", error);
+    // Continue without PRS scores
+  }
+
   return {
     id: `report-${Date.now()}`,
     vendor: "23andMe", // Could be detected from file format
     generatedAt: new Date(),
     mutations,
     demographics,
+    prsResults,
   };
 }
 
@@ -280,7 +326,8 @@ function AppContent() {
       // Generate real report using genetic analysis results
       const report = await generateRealReport(
         sharedVariants,
-        state.demographics
+        state.demographics,
+        parsedVariants
       );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
@@ -381,7 +428,8 @@ function AppContent() {
       // Generate real report using genetic analysis results
       const report = await generateRealReport(
         sharedVariants,
-        state.demographics
+        state.demographics,
+        parsedVariants
       );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
@@ -580,7 +628,12 @@ function App() {
     demographics: getDemographics(),
     chatMessages: [],
     uiPreferences: {
-      sectionsExpanded: { "4 Stars": true, "3 Stars": true, "1 Star": false },
+      sectionsExpanded: {
+        "4 Stars": true,
+        "3 Stars": true,
+        "1 Star": false,
+        PRS: true,
+      },
       chatOpen: false,
     },
   };

@@ -1,9 +1,9 @@
 // src/components/ChatSidebar.tsx
 
-import React, { useState, useRef, useEffect } from 'react';
-import type { ChatMessage, Finding } from '../models';
-import { CHAT_HEADER, CHAT_BADGE, PROMPTS } from '../assets/copy';
-import { cn } from '../tools';
+import React, { useState, useRef, useEffect } from "react";
+import type { ChatMessage, Finding } from "../models";
+import { CHAT_HEADER, CHAT_BADGE, PROMPTS } from "../assets/copy";
+import { cn } from "../tools";
 
 interface ChatSidebarProps {
   messages: ChatMessage[];
@@ -14,27 +14,27 @@ interface ChatSidebarProps {
   isOpen?: boolean;
 }
 
-export default function ChatSidebar({ 
-  messages, 
-  selectedFinding, 
-  onSendMessage, 
+export default function ChatSidebar({
+  messages,
+  selectedFinding,
+  onSendMessage,
   onClose,
   isMobile = false,
-  isOpen = true 
+  isOpen = true,
 }: ChatSidebarProps) {
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
       onSendMessage(inputValue.trim());
-      setInputValue('');
+      setInputValue("");
     }
   };
 
@@ -53,9 +53,6 @@ export default function ChatSidebar({
             <h2 className="text-lg font-semibold text-gray-900">
               {CHAT_HEADER}
             </h2>
-            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-              {CHAT_BADGE}
-            </span>
           </div>
           {(isMobile || onClose) && (
             <button
@@ -63,31 +60,46 @@ export default function ChatSidebar({
               className="p-1 rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Close chat"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
         </div>
-        
+
         {/* Context chips */}
         {selectedFinding && (
           <div className="mt-2 flex flex-wrap gap-1">
             <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               {selectedFinding.title}
             </div>
-            <div className={cn(
-              "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-              selectedFinding.riskLevel === 'High' 
-                ? "bg-red-100 text-red-800"
-                : selectedFinding.riskLevel === 'Moderate'
-                ? "bg-yellow-100 text-yellow-800"
-                : "bg-green-100 text-green-800"
-            )}>
+            <div
+              className={cn(
+                "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
+                selectedFinding.riskLevel === "High"
+                  ? "bg-red-100 text-red-800"
+                  : selectedFinding.riskLevel === "Moderate"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-green-100 text-green-800"
+              )}
+            >
               {selectedFinding.riskLevel}
             </div>
-            {selectedFinding.rsIds.slice(0, 2).map(rsId => (
-              <div key={rsId} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-mono bg-gray-100 text-gray-700">
+            {selectedFinding.rsIds.slice(0, 2).map((rsId) => (
+              <div
+                key={rsId}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-mono bg-gray-100 text-gray-700"
+              >
                 {rsId}
               </div>
             ))}
@@ -99,14 +111,23 @@ export default function ChatSidebar({
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
-            <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <svg
+              className="mx-auto h-12 w-12 text-gray-300 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
             </svg>
             <p className="text-sm">
-              {selectedFinding 
+              {selectedFinding
                 ? `Ask me about ${selectedFinding.title}`
-                : 'Select a finding to start discussing'
-              }
+                : "Select a finding to start discussing"}
             </p>
           </div>
         ) : (
@@ -115,19 +136,19 @@ export default function ChatSidebar({
               key={message.id}
               className={cn(
                 "flex",
-                message.role === 'user' ? "justify-end" : "justify-start"
+                message.role === "user" ? "justify-end" : "justify-start"
               )}
             >
               <div
                 className={cn(
                   "max-w-xs lg:max-w-md px-3 py-2 rounded-lg text-sm",
-                  message.role === 'user'
+                  message.role === "user"
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-900"
                 )}
               >
                 {message.content}
-                {message.role === 'assistant' && (
+                {message.role === "assistant" && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     <button className="text-xs px-2 py-1 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30">
                       Sources
@@ -169,9 +190,13 @@ export default function ChatSidebar({
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={selectedFinding ? "Ask about this finding..." : "Select a finding first"}
+            placeholder={
+              selectedFinding
+                ? "Ask about this finding..."
+                : "Select a finding first"
+            }
             disabled={!selectedFinding}
-            className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="pl-2 flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
@@ -179,8 +204,18 @@ export default function ChatSidebar({
             className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send message"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <svg
+              className="w-4 h-4 rotate-90"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
             </svg>
           </button>
         </form>
@@ -190,20 +225,22 @@ export default function ChatSidebar({
 
   if (isMobile) {
     return (
-      <div className={cn(
-        "fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-lg transition-transform duration-300",
-        isOpen ? "translate-y-0" : "translate-y-full"
-      )}>
-        <div className="h-96">
-          {content}
-        </div>
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-lg transition-transform duration-300",
+          isOpen ? "translate-y-0" : "translate-y-full"
+        )}
+      >
+        <div className="h-96">{content}</div>
       </div>
     );
   }
 
   return (
-    <div className="w-80 border-l border-gray-200 h-full">
-      {content}
+    <div className="w-100">
+      <div className="fixed top-0 pt-[110px] bg-white right-0 bottom-0 w-100 border-l border-gray-200 h-full">
+        {content}{" "}
+      </div>
     </div>
   );
 }

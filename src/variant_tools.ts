@@ -88,6 +88,7 @@ export async function loadClinvarDatabase(): Promise<Record<string, DatabaseVari
  * @returns A record mapping lowercase rsid to SNPedia variant objects
  */
 export async function loadSnpediaDatabase(): Promise<Record<string, DatabaseVariant>> {
+  // const response = await fetch('/data_files/snp-data.json');
   const response = await fetch('/data_files/snpedia.json');
   const snpediaArray = await response.json();
 

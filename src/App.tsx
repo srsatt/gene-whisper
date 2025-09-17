@@ -19,6 +19,7 @@ import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
 import DNABackground from "./components/DNABackground";
 import PrivacyToast from "./components/PrivacyToast";
+import SystemRequirementsToast from "./components/SystemRequirementsToast";
 
 // Mock report generator
 async function generateReportMock(demographics: Demographics): Promise<Report> {
@@ -377,7 +378,7 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
 }
 
-const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<AppContextType | null>(null);
 
 // Actions
 type AppAction =
@@ -441,7 +442,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
 }
 
 // Hook to use app context
-function useAppContext() {
+export function useAppContext() {
   const context = useContext(AppContext);
   if (!context) {
     throw new Error("useAppContext must be used within AppProvider");
@@ -729,6 +730,9 @@ function AppContent() {
 
       {/* Privacy Toast */}
       <PrivacyToast />
+
+      {/* System Requirements Toast */}
+      <SystemRequirementsToast />
     </div>
   );
 }

@@ -78,7 +78,7 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
 }
 
 const SECTION_CONFIG = {
-  title: "Mono",
+  title: "Monogenic Score",
   description: "All genetic variants and associated traits from your analysis",
   color: "blue",
 } as const;
@@ -92,6 +92,7 @@ export default function ReportLayout({
 }: ReportLayoutProps) {
   const [sectionExpanded, setSectionExpanded] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(20);
 
   // Load UI preferences
   useEffect(() => {
@@ -119,7 +120,17 @@ export default function ReportLayout({
   }, [sectionExpanded, chatOpen]);
 
   const toggleSection = () => {
-    setSectionExpanded((prev) => !prev);
+    setSectionExpanded((prev) => {
+      // Reset visible count when expanding section
+      if (!prev) {
+        setVisibleCount(20);
+      }
+      return !prev;
+    });
+  };
+
+  const showMore = () => {
+    setVisibleCount((prev) => prev + 20);
   };
 
   const selectedMutation = selectedMutationId
@@ -135,6 +146,10 @@ export default function ReportLayout({
     };
     return evidenceOrder[a.evidence_level] - evidenceOrder[b.evidence_level];
   });
+
+  // Get visible mutations based on pagination
+  const visibleMutations = allMutations.slice(0, visibleCount);
+  const hasMore = visibleCount < allMutations.length;
 
   return (
     <div className="flex h-full">
@@ -155,6 +170,14 @@ export default function ReportLayout({
                     </h2>
                     <p className="text-sm text-gray-600">
                       {SECTION_CONFIG.description}
+                      {allMutations.length > 20 && (
+                        <span className="text-gray-500">
+                          {" "}
+                          • Showing{" "}
+                          {Math.min(visibleCount, allMutations.length)} of{" "}
+                          {allMutations.length}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <svg
@@ -176,15 +199,29 @@ export default function ReportLayout({
                 </button>
 
                 {sectionExpanded && (
-                  <div className="grid gap-3">
-                    {allMutations.map((mutation) => (
-                      <MutationCard
-                        key={mutation.rsid}
-                        mutation={mutation}
-                        onDiscuss={onDiscuss}
-                        isSelected={mutation.rsid === selectedMutationId}
-                      />
-                    ))}
+                  <div className="space-y-4">
+                    <div className="grid gap-3">
+                      {visibleMutations.map((mutation) => (
+                        <MutationCard
+                          key={mutation.rsid}
+                          mutation={mutation}
+                          onDiscuss={onDiscuss}
+                          isSelected={mutation.rsid === selectedMutationId}
+                        />
+                      ))}
+                    </div>
+
+                    {hasMore && (
+                      <div className="flex justify-center pt-4">
+                        <button
+                          onClick={showMore}
+                          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        >
+                          Show More ({allMutations.length - visibleCount}{" "}
+                          remaining)
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

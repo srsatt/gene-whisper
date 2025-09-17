@@ -11,13 +11,125 @@ export interface InputVariant {
   genotype: string;
 }
 
+// --- FILE PARSING ---
+
+/**
+ * Parses a 23andMe-style text file and converts it to InputVariant objects.
+ * @param fileContent The raw text content of the uploaded file
+ * @returns A record mapping rsid to InputVariant objects
+ */
+export function parseGenomeFile(fileContent: string): Record<string, InputVariant> {
+  const lines = fileContent.split('\n');
+  const variants: Record<string, InputVariant> = {};
+
+  for (const line of lines) {
+    // Skip comment lines and empty lines
+    if (line.startsWith('#') || line.trim() === '') {
+      continue;
+    }
+
+    // Split by tabs or whitespace
+    const columns = line.trim().split(/\s+/);
+
+    // Expect 4 columns: rsid, chromosome, position, genotype
+    if (columns.length >= 4) {
+      const [rsid, chromosome, position, genotype] = columns;
+
+      // Validate rsid format
+      if (rsid.startsWith('rs')) {
+        const variant: InputVariant = {
+          rsid,
+          chromosome,
+          position: parseInt(position, 10),
+          genotype
+        };
+
+        // Use lowercase rsid as key for matching
+        variants[rsid.toLowerCase()] = variant;
+      }
+    }
+  }
+
+  return variants;
+}
+
+// --- DATABASE LOADING ---
+
+/**
+ * Loads and prepares ClinVar database from JSON file.
+ * @returns A record mapping lowercase rsid to ClinVar variant objects
+ */
+export async function loadClinvarDatabase(): Promise<Record<string, DatabaseVariant>> {
+  const response = await fetch('/data_files/clinvar.json');
+  const clinvarArray = await response.json();
+
+  const clinvarMap: Record<string, DatabaseVariant> = {};
+
+  for (const variant of clinvarArray) {
+    if (variant.rsid && variant.rsid.startsWith('rs')) {
+      clinvarMap[variant.rsid.toLowerCase()] = {
+        rsid: variant.rsid,
+        reference_allele: variant.reference_allele,
+        alternative_allele: variant.alternative_allele,
+        evidence_level: variant.evidence_level,
+        gene_name: variant.gene_name,
+        phenotype: variant.phenotype,
+        chrom: variant.chrom,
+        position: variant.position
+      };
+    }
+  }
+
+  return clinvarMap;
+}
+
+/**
+ * Loads and prepares SNPedia database from JSON file.
+ * @returns A record mapping lowercase rsid to SNPedia variant objects
+ */
+export async function loadSnpediaDatabase(): Promise<Record<string, DatabaseVariant>> {
+  const response = await fetch('/data_files/snpedia.json');
+  const snpediaArray = await response.json();
+
+  const snpediaMap: Record<string, DatabaseVariant> = {};
+
+  for (const variant of snpediaArray) {
+    if (variant.rsid && variant.rsid.startsWith('rs')) {
+      snpediaMap[variant.rsid.toLowerCase()] = {
+        rsid: variant.rsid,
+        reference_allele: variant.reference_allele,
+        alternative_allele: variant.alternative_allele,
+        gene_name: variant.gene_name,
+        pmids: variant.pmids,
+        diseases: variant.diseases,
+        description: variant.description
+      };
+    }
+  }
+
+  return snpediaMap;
+}
+
 /** Represents a variant from the ClinVar or SNPedia database. */
 export interface DatabaseVariant {
   rsid: string;
   reference_allele: string;
   alternative_allele: string;
-  // Add other properties common to both or specific to each
-  [key: string]: any; // Allows for other properties
+  gene_name?: string | null;
+
+  // ClinVar specific fields
+  evidence_level?: string;
+  phenotype?: string;
+  chrom?: string;
+  position?: number;
+
+  // SNPedia specific fields
+  pmids?: string;
+  diseases?: string;
+  description?: string;
+
+  // Allow other properties for flexibility
+  [key: string]: any;
 }
 
 /** Represents a final, matched variant found in the user's genome. */
@@ -53,7 +165,7 @@ function getGenotypeCode(actual: string, refAllele: string, altAllele: string): 
   if (actual === '--') {
     return -1;
   }
-  
+
   let alleles = actual;
   // Homozygous if single allele provided (e.g., from X or Y chromosome)
   if (alleles.length === 1) {
@@ -71,7 +183,7 @@ function getGenotypeCode(actual: string, refAllele: string, altAllele: string): 
   if (allele1 === refAllele && allele2 === refAllele) {
     return 0;
   }
-  
+
   // Homozygous Alternative (e.g., alt is 'G', actual is 'GG')
   if (allele1 === altAllele && allele2 === altAllele) {
     return 2;
@@ -153,5 +265,57 @@ export function findSharedVariants(
     }
   }
 
+  // Sort results: ClinVar first, then SNPedia
+  // Within each source, sort by condition availability, then by rsid
+  results.sort((a, b) => {
+    // First sort by source: clinvar comes before snpedia
+    if (a.source !== b.source) {
+      return a.source === 'clinvar' ? -1 : 1;
+    }
+
+    // Within same source, prioritize variants with conditions
+    const aHasCondition = (a.source === 'clinvar' && a.phenotype && a.phenotype.trim() !== '') ||
+                         (a.source === 'snpedia' && a.diseases && a.diseases.trim() !== '');
+    const bHasCondition = (b.source === 'clinvar' && b.phenotype && b.phenotype.trim() !== '') ||
+                         (b.source === 'snpedia' && b.diseases && b.diseases.trim() !== '');
+    
+    if (aHasCondition !== bHasCondition) {
+      return aHasCondition ? -1 : 1; // Variants with conditions come first
+    }
+
+    // Within same condition availability, sort by rsid
+    return a.rsid.localeCompare(b.rsid);
+  });
+
   return results;
+}
+
+// --- REPORT GENERATION ---
+
+/**
+ * Converts ResultVariant[] to Mutation[] for report generation.
+ * Handles both ClinVar and SNPedia variants with different field structures.
+ * @param resultVariants Array of shared variants from findSharedVariants
+ * @returns Array of mutations formatted for the report
+ */
+export function convertToMutations(resultVariants: ResultVariant[]): any[] {
+  return resultVariants
+    .filter(variant => {
+      // Include variants that have either phenotype (ClinVar) or diseases (SNPedia)
+      const hasCondition = (variant.source === 'clinvar' && variant.phenotype) || 
+                          (variant.source === 'snpedia' && variant.diseases);
+      const hasGene = variant.gene_name && variant.gene_name.trim() !== '';
+      return hasCondition && hasGene;
+    })
+    .map(variant => ({
+      rsid: variant.rsid,
+      evidence_level: variant.evidence_level || '1 Star', // ClinVar has this, SNPedia defaults to 1 Star
+      gene_name: variant.gene_name,
+      // Use phenotype for ClinVar, diseases for SNPedia
+      phenotype: variant.source === 'clinvar' ? variant.phenotype : variant.diseases,
+      chrom: variant.chrom?.toString() || 'Unknown',
+      position: variant.position || 0,
+      reference_allele: variant.reference_allele,
+      alternative_allele: variant.alternative_allele
+    }));
 }

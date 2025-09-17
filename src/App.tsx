@@ -4,11 +4,17 @@ import type {
   Demographics,
   Report,
   ChatMessage,
-  Mutation,
   StarRating,
 } from "./models";
 import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
+import {
+  parseGenomeFile,
+  loadClinvarDatabase,
+  loadSnpediaDatabase,
+  findSharedVariants,
+  convertToMutations,
+} from "./variant_tools";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
@@ -18,20 +24,30 @@ import SystemRequirementsToast from "./components/SystemRequirementsToast";
 import MobileErrorScreen from "./components/MobileErrorScreen";
 import { useIsMobile } from "./utils/device";
 
-// Mock report generator using mutation_list.json
-async function generateReportMock(demographics: Demographics): Promise<Report> {
-  // Simulate processing delay
-  await new Promise((resolve) =>
-    setTimeout(resolve, Math.random() * 4000 + 8000)
-  );
+// Real report generator using genetic analysis results
+async function generateRealReport(
+  sharedVariants: any[],
+  demographics: Demographics
+): Promise<Report> {
+  // Convert shared variants to mutations format
+  const mutations = convertToMutations(sharedVariants);
 
-  // Fetch mutations data from public directory
-  const response = await fetch("/mutation_list.json");
-  const mutations: Mutation[] = await response.json();
+  const clinvarCount = sharedVariants.filter(
+    (v) => v.source === "clinvar"
+  ).length;
+  const snpediaCount = sharedVariants.filter(
+    (v) => v.source === "snpedia"
+  ).length;
+
+  console.log(
+    `Generated report with ${mutations.length} clinically significant mutations`
+  );
+  console.log(`  - From ${clinvarCount} ClinVar variants (medical conditions)`);
+  console.log(`  - From ${snpediaCount} SNPedia variants (genetic traits)`);
 
   return {
     id: `report-${Date.now()}`,
-    vendor: "23andMe",
+    vendor: "23andMe", // Could be detected from file format
     generatedAt: new Date(),
     mutations,
     demographics,
@@ -190,7 +206,82 @@ function AppContent() {
     dispatch({ type: "SET_PHASE", phase: "processing" });
 
     try {
-      const report = await generateReportMock(state.demographics);
+      // Read and parse the uploaded file
+      const fileContent = await state.uploadedFile.text();
+      const parsedVariants = parseGenomeFile(fileContent);
+
+      console.log(
+        `Parsed ${Object.keys(parsedVariants).length} variants from file`
+      );
+
+      // Load database files
+      console.log("Loading ClinVar and SNPedia databases...");
+      const [clinvarMap, snpediaMap] = await Promise.all([
+        loadClinvarDatabase(),
+        loadSnpediaDatabase(),
+      ]);
+
+      console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
+      console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
+
+      // Find shared variants between user genome and databases
+      const sharedVariants = findSharedVariants(
+        parsedVariants,
+        clinvarMap,
+        snpediaMap
+      );
+
+      console.log(
+        `Found ${sharedVariants.length} shared variants with clinical significance`
+      );
+
+      // Log breakdown by source
+      const clinvarCount = sharedVariants.filter(
+        (v) => v.source === "clinvar"
+      ).length;
+      const snpediaCount = sharedVariants.filter(
+        (v) => v.source === "snpedia"
+      ).length;
+
+      // Count variants with conditions
+      const withConditions = sharedVariants.filter(
+        (v) =>
+          (v.source === "clinvar" &&
+            v.phenotype &&
+            v.phenotype.trim() !== "") ||
+          (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
+      ).length;
+      const withoutConditions = sharedVariants.length - withConditions;
+
+      console.log(
+        `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
+      );
+      console.log(
+        `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
+      );
+
+      // Log first few results to show sorting
+      if (sharedVariants.length > 0) {
+        console.log(
+          "First 3 sorted results:",
+          sharedVariants.slice(0, 3).map((v) => ({
+            rsid: v.rsid,
+            source: v.source,
+            genotype: v.genotype,
+            condition:
+              v.source === "clinvar"
+                ? v.phenotype || "N/A"
+                : v.diseases || "N/A",
+            gene_name: v.gene_name || "N/A",
+          }))
+        );
+      }
+
+      // Generate real report using genetic analysis results
+      const report = await generateRealReport(
+        sharedVariants,
+        state.demographics
+      );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
     } catch (error) {
@@ -218,7 +309,80 @@ function AppContent() {
       dispatch({ type: "SET_FILE", file: demoFile });
       dispatch({ type: "SET_PHASE", phase: "processing" });
 
-      const report = await generateReportMock(state.demographics);
+      // Parse the demo file content
+      const parsedVariants = parseGenomeFile(fileContent);
+      console.log(
+        `Parsed ${Object.keys(parsedVariants).length} variants from demo file`
+      );
+
+      // Load database files
+      console.log("Loading ClinVar and SNPedia databases...");
+      const [clinvarMap, snpediaMap] = await Promise.all([
+        loadClinvarDatabase(),
+        loadSnpediaDatabase(),
+      ]);
+
+      console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
+      console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
+
+      // Find shared variants between user genome and databases
+      const sharedVariants = findSharedVariants(
+        parsedVariants,
+        clinvarMap,
+        snpediaMap
+      );
+
+      console.log(
+        `Found ${sharedVariants.length} shared variants with clinical significance`
+      );
+
+      // Log breakdown by source
+      const clinvarCount = sharedVariants.filter(
+        (v) => v.source === "clinvar"
+      ).length;
+      const snpediaCount = sharedVariants.filter(
+        (v) => v.source === "snpedia"
+      ).length;
+
+      // Count variants with conditions
+      const withConditions = sharedVariants.filter(
+        (v) =>
+          (v.source === "clinvar" &&
+            v.phenotype &&
+            v.phenotype.trim() !== "") ||
+          (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
+      ).length;
+      const withoutConditions = sharedVariants.length - withConditions;
+
+      console.log(
+        `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
+      );
+      console.log(
+        `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
+      );
+
+      // Log first few results to show sorting
+      if (sharedVariants.length > 0) {
+        console.log(
+          "First 3 sorted results:",
+          sharedVariants.slice(0, 3).map((v) => ({
+            rsid: v.rsid,
+            source: v.source,
+            genotype: v.genotype,
+            condition:
+              v.source === "clinvar"
+                ? v.phenotype || "N/A"
+                : v.diseases || "N/A",
+            gene_name: v.gene_name || "N/A",
+          }))
+        );
+      }
+
+      // Generate real report using genetic analysis results
+      const report = await generateRealReport(
+        sharedVariants,
+        state.demographics
+      );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
     } catch (error) {

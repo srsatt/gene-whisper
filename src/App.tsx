@@ -396,6 +396,8 @@ function AppContent() {
         (v) => v.source === "snpedia"
       ).length;
 
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+
       // Count variants with conditions
       const withConditions = sharedVariants.filter(
         (v) =>

@@ -95,19 +95,25 @@ export default function UploadPage({
 
           {/* Start Processing */}
           <div>
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
+            <div className="flex items-center ">
+              <div className="">
                 <button
                   onClick={handleStartClick}
                   disabled={isProcessing}
-                  className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full sm:w-auto px-8 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isProcessing ? "Processing..." : "Start Processing"}
                 </button>
               </div>
-              <div className="ml-4 flex-shrink-0">
-                <p className="text-sm text-gray-500">{START_HELPER}</p>
-              </div>
+              <div className="mx-2">or</div>
+              <button
+                onClick={onDemo}
+                disabled={isProcessing}
+                className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                <div className="w-4 h-4 mr-2 mt-1/2">{DNAIcons.flask}</div>
+                Try Demo with Sample Data
+              </button>
             </div>
 
             {showError && (
@@ -121,7 +127,7 @@ export default function UploadPage({
         </div>
 
         {/* Demo Option */}
-        <div className="text-center mt-12">
+        {/* <div className="text-center mt-12">
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
@@ -143,7 +149,7 @@ export default function UploadPage({
               Uses a sample 23andMe file to show how the analysis works
             </p>
           </div>
-        </div>
+        </div> */}
 
         {/* How it works */}
         {/* <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">

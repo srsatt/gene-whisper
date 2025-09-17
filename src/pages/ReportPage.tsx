@@ -1,14 +1,15 @@
 // src/pages/ReportPage.tsx
 
 import { useEffect } from "react";
-import type { Report, ChatMessage } from "../models";
+import type { Report, ChatMessage, SelectedItem } from "../models";
 import ReportLayout from "../components/ReportLayout";
 
 interface ReportPageProps {
   report: Report;
   selectedMutationId?: string;
+  selectedItem?: SelectedItem;
   chatMessages: ChatMessage[];
-  onDiscuss: (rsid: string) => void;
+  onDiscuss: (id: string) => void;
   onSendMessage: (content: string) => void;
   onBack: () => void;
 }
@@ -16,6 +17,7 @@ interface ReportPageProps {
 export default function ReportPage({
   report,
   selectedMutationId,
+  selectedItem,
   chatMessages,
   onDiscuss,
   onSendMessage,
@@ -118,6 +120,7 @@ export default function ReportPage({
         <ReportLayout
           report={report}
           selectedMutationId={selectedMutationId}
+          selectedItem={selectedItem}
           chatMessages={chatMessages}
           onDiscuss={onDiscuss}
           onSendMessage={onSendMessage}

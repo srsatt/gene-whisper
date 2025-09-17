@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import type { Report, Mutation, StarRating, ChatMessage } from "../models";
+import type {
+  Report,
+  Mutation,
+  StarRating,
+  ChatMessage,
+  SelectedItem,
+} from "../models";
 import { saveUIPreferences, getUIPreferences } from "../db";
 import ChatSidebar from "./ChatSidebar";
 import { cn } from "../tools";
@@ -8,33 +14,35 @@ import type { PRSResult } from "../prs";
 interface ReportLayoutProps {
   report: Report;
   selectedMutationId?: string;
+  selectedItem?: SelectedItem;
   chatMessages: ChatMessage[];
-  onDiscuss: (rsid: string) => void;
+  onDiscuss: (id: string) => void;
   onSendMessage: (content: string) => void;
   prsResults?: PRSResult[];
 }
 
 interface MutationCardProps {
   mutation: Mutation;
-  onDiscuss: (rsid: string) => void;
+  onDiscuss: (id: string) => void;
   isSelected: boolean;
 }
 
 interface PRSCardProps {
   prsResult: PRSResult;
+  onDiscuss: (id: string) => void;
 }
 
 function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border p-4 transition-all",
+        "bg-white rounded-lg border p-4 transition-all group",
         isSelected
           ? "border-blue-500 shadow-md"
           : "border-gray-200 hover:border-gray-300"
       )}
     >
-      <div className="flex justify-between items-start mb-3">
+      <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <a
@@ -69,21 +77,20 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
             {mutation.phenotype}
           </p>
         </div>
-      </div>
-
-      <div className="flex justify-between items-center">
-        <button
-          onClick={() => onDiscuss(mutation.rsid)}
-          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Discuss
-        </button>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
+          <button
+            onClick={() => onDiscuss(mutation.rsid)}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Discuss
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function PRSCard({ prsResult }: PRSCardProps) {
+function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
   const getRiskColor = (risk: PRSResult["risk"]) => {
     if (typeof risk === "number") {
       return "bg-gray-100 text-gray-700"; // For raw scores without risk categories
@@ -119,8 +126,8 @@ function PRSCard({ prsResult }: PRSCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-all">
-      <div className="flex justify-between items-start mb-3">
+    <div className="bg-gradient-to-r from-gray-50 to-white rounded-lg border border-purple-200 p-4 hover:border-purple-300 hover:shadow-md transition-all group">
+      <div className="flex justify-between items-start">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm font-medium text-gray-900">
@@ -153,6 +160,14 @@ function PRSCard({ prsResult }: PRSCardProps) {
             )}
           </div>
         </div>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
+          <button
+            onClick={() => onDiscuss(prsResult.pgs_id)}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Discuss
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -168,6 +183,7 @@ const SECTION_CONFIG = {
 export default function ReportLayout({
   report,
   selectedMutationId,
+  selectedItem,
   chatMessages,
   onDiscuss,
   onSendMessage,
@@ -243,6 +259,33 @@ export default function ReportLayout({
     ? report.mutations.find((m) => m.rsid === selectedMutationId)
     : undefined;
 
+  // Find selected item (mutation or PRS)
+  const getSelectedItemData = () => {
+    if (!selectedItem) return null;
+
+    if (selectedItem.type === "mutation") {
+      const mutation = report.mutations.find((m) => m.rsid === selectedItem.id);
+      return mutation
+        ? {
+            type: "mutation" as const,
+            data: mutation,
+          }
+        : null;
+    } else if (selectedItem.type === "prs") {
+      const prsResult = prsResults.find((p) => p.pgs_id === selectedItem.id);
+      return prsResult
+        ? {
+            type: "prs" as const,
+            data: prsResult,
+          }
+        : null;
+    }
+
+    return null;
+  };
+
+  const selectedItemData = getSelectedItemData();
+
   // All mutations sorted by evidence level (4 Stars -> 3 Stars -> 1 Star)
   const allMutations = report.mutations.sort((a, b) => {
     const evidenceOrder: Record<StarRating, number> = {
@@ -290,19 +333,36 @@ export default function ReportLayout({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Sections */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Polygenic Risk Score Section */}
             {prsResults.length > 0 && (
-              <div className="space-y-4">
+              <div>
                 <button
                   onClick={togglePrsSection}
-                  className="flex items-center justify-between w-full text-left bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                  className={cn(
+                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm",
+                    prsSectionExpanded ? "rounded-t-lg" : "rounded-lg"
+                  )}
+                  style={{ outline: "none" }}
                 >
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                    <h2 className="text-xl font-bold text-purple-900 mb-2 flex items-center gap-2">
+                      <svg
+                        className="w-6 h-6 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
+                      </svg>
                       Polygenic Risk Score ({sortedPrsResults.length})
                     </h2>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-purple-700">
                       Multi-variant genetic risk assessments for complex traits
                       and diseases
                     </p>
@@ -326,15 +386,21 @@ export default function ReportLayout({
                 </button>
 
                 {prsSectionExpanded && (
-                  <div className="space-y-4">
-                    <div className="grid gap-3">
-                      {visiblePrsResults.map((prsResult) => (
-                        <PRSCard key={prsResult.pgs_id} prsResult={prsResult} />
-                      ))}
+                  <div>
+                    <div className="bg-white rounded-b-lg border border-t-0 border-purple-100 p-4 shadow-sm">
+                      <div className="grid gap-4">
+                        {visiblePrsResults.map((prsResult) => (
+                          <PRSCard
+                            key={prsResult.pgs_id}
+                            prsResult={prsResult}
+                            onDiscuss={onDiscuss}
+                          />
+                        ))}
+                      </div>
                     </div>
 
                     {hasMorePrs && (
-                      <div className="flex justify-center pt-4">
+                      <div className="flex justify-center pt-6">
                         <button
                           onClick={showMorePrs}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
@@ -351,16 +417,33 @@ export default function ReportLayout({
 
             {/* Monogenic Score Section */}
             {allMutations.length > 0 && (
-              <div className="space-y-4">
+              <div className="">
                 <button
                   onClick={toggleSection}
-                  className="flex items-center justify-between w-full text-left bg-white rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                  className={cn(
+                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm",
+                    sectionExpanded ? "rounded-t-lg" : "rounded-lg"
+                  )}
+                  style={{ outline: "none" }}
                 >
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                    <h2 className="text-xl font-bold text-purple-900 mb-2 flex items-center gap-2">
+                      <svg
+                        className="w-6 h-6 text-purple-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                        />
+                      </svg>
                       {SECTION_CONFIG.title} ({allMutations.length})
                     </h2>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-purple-700">
                       {SECTION_CONFIG.description}
                     </p>
                   </div>
@@ -383,20 +466,22 @@ export default function ReportLayout({
                 </button>
 
                 {sectionExpanded && (
-                  <div className="space-y-4">
-                    <div className="grid gap-3">
-                      {visibleMutations.map((mutation) => (
-                        <MutationCard
-                          key={mutation.rsid}
-                          mutation={mutation}
-                          onDiscuss={onDiscuss}
-                          isSelected={mutation.rsid === selectedMutationId}
-                        />
-                      ))}
+                  <div>
+                    <div className="bg-white rounded-b-lg border border-t-0 border-purple-100 p-4 shadow-sm">
+                      <div className="grid gap-4">
+                        {visibleMutations.map((mutation) => (
+                          <MutationCard
+                            key={mutation.rsid}
+                            mutation={mutation}
+                            onDiscuss={onDiscuss}
+                            isSelected={mutation.rsid === selectedMutationId}
+                          />
+                        ))}
+                      </div>
                     </div>
 
                     {hasMore && (
-                      <div className="flex justify-center pt-4">
+                      <div className="flex justify-center pt-6">
                         <button
                           onClick={showMore}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
@@ -418,6 +503,7 @@ export default function ReportLayout({
       <ChatSidebar
         messages={chatMessages}
         selectedMutation={selectedMutation}
+        selectedItem={selectedItemData}
         onSendMessage={onSendMessage}
       />
     </div>

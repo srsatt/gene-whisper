@@ -57,12 +57,18 @@ export interface ChatMessage {
   };
 }
 
+export interface SelectedItem {
+  type: 'mutation' | 'prs';
+  id: string;
+}
+
 export interface AppState {
   phase: 'upload' | 'processing' | 'report';
   demographics: Demographics;
   uploadedFile?: File;
   report?: Report;
   selectedMutationId?: string;
+  selectedItem?: SelectedItem;
   chatMessages: ChatMessage[];
   uiPreferences: {
     sectionsExpanded: Record<StarRating | 'PRS', boolean>;

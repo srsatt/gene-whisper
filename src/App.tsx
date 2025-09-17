@@ -5,6 +5,7 @@ import type {
   Report,
   ChatMessage,
   StarRating,
+  SelectedItem,
 } from "./models";
 import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
@@ -115,6 +116,7 @@ type AppAction =
   | { type: "SET_DEMOGRAPHICS"; demographics: Demographics }
   | { type: "SET_REPORT"; report: Report }
   | { type: "SET_SELECTED_MUTATION"; rsid?: string }
+  | { type: "SET_SELECTED_ITEM"; item?: SelectedItem }
   | { type: "ADD_CHAT_MESSAGE"; message: ChatMessage }
   | { type: "TOGGLE_SECTION_EXPANDED"; level: StarRating }
   | { type: "SET_CHAT_OPEN"; open: boolean };
@@ -136,6 +138,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_SELECTED_MUTATION":
       return { ...state, selectedMutationId: action.rsid };
+
+    case "SET_SELECTED_ITEM":
+      return { ...state, selectedItem: action.item };
 
     case "ADD_CHAT_MESSAGE":
       return {
@@ -449,9 +454,16 @@ function AppContent() {
     dispatch({ type: "SET_PHASE", phase: "upload" });
   };
 
-  // Handle discuss mutation
-  const handleDiscuss = (rsid: string) => {
-    dispatch({ type: "SET_SELECTED_MUTATION", rsid });
+  // Handle discuss mutation or PRS
+  const handleDiscuss = (id: string) => {
+    // Check if it's a PGS ID (starts with "PGS") or RSID
+    if (id.startsWith("PGS")) {
+      dispatch({ type: "SET_SELECTED_ITEM", item: { type: "prs", id } });
+    } else {
+      dispatch({ type: "SET_SELECTED_ITEM", item: { type: "mutation", id } });
+      // Keep backward compatibility
+      dispatch({ type: "SET_SELECTED_MUTATION", rsid: id });
+    }
     dispatch({ type: "SET_CHAT_OPEN", open: true });
   };
 
@@ -558,6 +570,7 @@ function AppContent() {
           <ReportPage
             report={state.report}
             selectedMutationId={state.selectedMutationId}
+            selectedItem={state.selectedItem}
             chatMessages={state.chatMessages}
             onDiscuss={handleDiscuss}
             onSendMessage={handleSendMessage}

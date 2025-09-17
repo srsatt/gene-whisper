@@ -2,12 +2,17 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import type { ChatMessage, Mutation } from "../models";
+import type { PRSResult } from "../prs";
 import { CHAT_HEADER, PROMPTS } from "../assets/copy";
 import { cn } from "../tools";
 
 interface ChatSidebarProps {
   messages: ChatMessage[];
   selectedMutation?: Mutation;
+  selectedItem?:
+    | { type: "mutation"; data: Mutation }
+    | { type: "prs"; data: PRSResult }
+    | null;
   onSendMessage: (content: string) => void;
   onClose?: () => void;
 }
@@ -15,6 +20,7 @@ interface ChatSidebarProps {
 export default function ChatSidebar({
   messages,
   selectedMutation,
+  selectedItem,
   onSendMessage,
   onClose,
 }: ChatSidebarProps) {
@@ -114,9 +120,13 @@ export default function ChatSidebar({
               />
             </svg>
             <p className="text-sm">
-              {selectedMutation
-                ? `Ask me about ${selectedMutation.rsid} (${selectedMutation.gene_name})`
-                : "Select a mutation to start discussing"}
+              {selectedItem?.type === "mutation" && selectedItem.data
+                ? `Ask me about ${selectedItem.data.rsid} (${selectedItem.data.gene_name})`
+                : selectedItem?.type === "prs" && selectedItem.data
+                  ? `Ask me about ${selectedItem.data.name} (${selectedItem.data.pgs_id})`
+                  : selectedMutation
+                    ? `Ask me about ${selectedMutation.rsid} (${selectedMutation.gene_name})`
+                    : "Select a mutation or PRS to start discussing"}
             </p>
           </div>
         ) : (

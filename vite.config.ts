@@ -117,7 +117,8 @@ export default defineConfig({
     open: false,
     strictPort: true,
     host: 'localhost',
-    port: 5173
+    port: 5173,
+    allowedHosts: ['cfaccd53f5e4.ngrok.app']
   },
   // Configure build for large assets
   build: {

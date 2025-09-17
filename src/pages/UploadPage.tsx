@@ -6,6 +6,7 @@ import type { Demographics } from "../models";
 import { UPLOAD_HELPER, START_HELPER } from "../assets/copy";
 import FileDropzone from "../components/FileDropzone";
 import DemographicsForm from "../components/DemographicsForm";
+import { DNAIcons } from "../components/DNAIcons";
 
 interface UploadPageProps {
   selectedFile?: File;
@@ -13,6 +14,7 @@ interface UploadPageProps {
   onFileSelect: (file: File) => void;
   onDemographicsChange: (demographics: Demographics) => void;
   onStart: () => void;
+  onDemo: () => void;
   isProcessing?: boolean;
 }
 
@@ -22,6 +24,7 @@ export default function UploadPage({
   onFileSelect,
   onDemographicsChange,
   onStart,
+  onDemo,
   isProcessing = false,
 }: UploadPageProps) {
   const [showError, setShowError] = React.useState(false);
@@ -53,7 +56,6 @@ export default function UploadPage({
             Get personalized genetic insights from your raw DNA data
           </p>
         </div>
-
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-8">
           {/* File Upload */}
           <div className="space-y-4">
@@ -82,7 +84,7 @@ export default function UploadPage({
           {/* Demographics */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              2. Personal Information
+              2. Personal Information (optional)
             </h2>
             <DemographicsForm
               demographics={demographics}
@@ -115,6 +117,31 @@ export default function UploadPage({
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Demo Option */}
+        <div className="text-center mt-12">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+          <div className="mt-8">
+            <button
+              onClick={onDemo}
+              disabled={isProcessing}
+              className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              <div className="w-4 h-4 mr-2 mt-1/2">{DNAIcons.flask}</div>
+              Try Demo with Sample Data
+            </button>
+            <p className="mt-4 text-xs text-gray-500">
+              Uses a sample 23andMe file to show how the analysis works
+            </p>
           </div>
         </div>
 

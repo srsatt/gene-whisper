@@ -533,6 +533,33 @@ function AppContent() {
     }
   };
 
+  // Handle demo processing
+  const handleDemo = async () => {
+    try {
+      // Fetch the demo file from public directory
+      const response = await fetch("/demo_genome.txt");
+      if (!response.ok) {
+        throw new Error("Failed to load demo file");
+      }
+
+      const fileContent = await response.text();
+      const demoFile = new File([fileContent], "demo_genome.txt", {
+        type: "text/plain",
+      });
+
+      // Set the demo file and start processing
+      dispatch({ type: "SET_FILE", file: demoFile });
+      dispatch({ type: "SET_PHASE", phase: "processing" });
+
+      const report = await generateReportMock(state.demographics);
+      saveReport(report);
+      dispatch({ type: "SET_REPORT", report });
+    } catch (error) {
+      console.error("Error processing demo file:", error);
+      alert("An error occurred while loading the demo. Please try again.");
+    }
+  };
+
   // Handle cancel processing
   const handleCancelProcessing = () => {
     dispatch({ type: "SET_PHASE", phase: "upload" });
@@ -638,6 +665,7 @@ function AppContent() {
             onFileSelect={handleFileSelect}
             onDemographicsChange={handleDemographicsChange}
             onStart={handleStart}
+            onDemo={handleDemo}
           />
         );
 

@@ -20,7 +20,17 @@ export default function ProcessingPage({
 
   // Use real progress if available, otherwise fall back to artificial progress
   const progress = progressInfo?.percentage ?? fallbackProgress;
-  const currentPhase = progressInfo?.phase ?? LOADER_LINES[currentLineIndex];
+
+  // Calculate current step based on progress percentage (same logic as step status)
+  const getCurrentStepFromProgress = () => {
+    const stepIndex = Math.floor((progress / 100) * LOADER_LINES.length);
+    return Math.min(Math.max(stepIndex, 0), LOADER_LINES.length - 1);
+  };
+
+  const currentStepIndex = progressInfo
+    ? getCurrentStepFromProgress()
+    : currentLineIndex;
+  const currentPhase = LOADER_LINES[currentStepIndex];
 
   // Calculate which steps should be completed based on progress percentage
   const getStepStatus = (stepIndex: number) => {
@@ -102,19 +112,6 @@ export default function ProcessingPage({
                 style={{ width: `${progress}%` }}
               />
             </div>
-            {progressInfo && (
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>
-                  {progressInfo.totalSize > 0 &&
-                    `${(progressInfo.totalLoaded / 1024 / 1024).toFixed(1)}MB / ${(progressInfo.totalSize / 1024 / 1024).toFixed(1)}MB`}
-                </span>
-                {progressInfo.totalSize > 0 && (
-                  <span className="text-gray-400">
-                    Current: {(progressInfo.loaded / 1024 / 1024).toFixed(1)}MB
-                  </span>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Animated spinner */}

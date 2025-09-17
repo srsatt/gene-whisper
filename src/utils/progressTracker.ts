@@ -17,26 +17,27 @@ export type ProgressCallback = (progress: ProgressInfo) => void;
 export class ProgressTracker {
   private onProgress: ProgressCallback;
   private phases: { name: string; weight: number }[];
-  private currentPhaseIndex = 0;
   private totalWeight: number;
   private fileSizes: Map<string, number> = new Map(); // Track file sizes
   private loadedBytes: Map<string, number> = new Map(); // Track loaded bytes per file
+  private phaseProgress: Map<string, number> = new Map(); // Track progress per phase
+  private completedPhases: Set<string> = new Set(); // Track completed phases
 
   constructor(onProgress: ProgressCallback, phases: { name: string; weight: number }[]) {
     this.onProgress = onProgress;
     this.phases = phases;
     this.totalWeight = phases.reduce((sum, phase) => sum + phase.weight, 0);
+    
+    // Initialize phase progress
+    phases.forEach(phase => {
+      this.phaseProgress.set(phase.name, 0);
+    });
   }
 
   /**
    * Fetches a resource with progress tracking
    */
   async fetchWithProgress(url: string, phaseName: string): Promise<Response> {
-    const phaseIndex = this.phases.findIndex(p => p.name === phaseName);
-    if (phaseIndex !== -1) {
-      this.currentPhaseIndex = phaseIndex;
-    }
-
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -45,9 +46,8 @@ export class ProgressTracker {
 
     const contentLength = response.headers.get('content-length');
     if (!contentLength) {
-      // If no content-length, we can't track progress for this specific download
-      // Just update to show we're in this phase
-      this.updateProgress(url, 0, 1, phaseName);
+      // If no content-length, mark this phase as complete
+      this.completePhase(phaseName);
       return response;
     }
 
@@ -70,14 +70,15 @@ export class ProgressTracker {
             if (done) {
               // Mark this file as complete
               this.loadedBytes.set(url, total);
-              this.updateProgress(url, total, total, phaseName);
+              this.updatePhaseProgress(phaseName, 1.0);
               controller.close();
               return;
             }
 
             loaded += value.byteLength;
             this.loadedBytes.set(url, loaded);
-            this.updateProgress(url, loaded, total, phaseName);
+            const progress = total > 0 ? loaded / total : 0;
+            this.updatePhaseProgress(phaseName, progress);
             
             controller.enqueue(value);
             return pump();
@@ -96,33 +97,50 @@ export class ProgressTracker {
   }
 
   /**
-   * Updates progress based on current phase
+   * Updates progress for a specific phase
    */
-  private updateProgress(_url: string, loaded: number, total: number, phase: string) {
-    // Calculate cumulative totals
+  private updatePhaseProgress(phaseName: string, progress: number) {
+    this.phaseProgress.set(phaseName, progress);
+    this.calculateOverallProgress(phaseName);
+  }
+
+  /**
+   * Calculates and reports overall progress
+   */
+  private calculateOverallProgress(currentPhase: string) {
+    // Calculate cumulative totals for file size display
     const totalSize = Array.from(this.fileSizes.values()).reduce((sum, size) => sum + size, 0);
     const totalLoaded = Array.from(this.loadedBytes.values()).reduce((sum, bytes) => sum + bytes, 0);
 
-    // Calculate progress for completed phases
-    let completedWeight = 0;
-    for (let i = 0; i < this.currentPhaseIndex; i++) {
-      completedWeight += this.phases[i].weight;
+    // Calculate weighted progress across all phases
+    let totalWeightedProgress = 0;
+    
+    for (const phase of this.phases) {
+      const phaseProgress = this.phaseProgress.get(phase.name) || 0;
+      totalWeightedProgress += phase.weight * phaseProgress;
     }
 
-    // Calculate progress for current phase
-    const currentPhaseWeight = this.phases[this.currentPhaseIndex]?.weight || 0;
-    const currentPhaseProgress = total > 0 ? (loaded / total) : 0;
-    const currentPhaseWeightedProgress = currentPhaseWeight * currentPhaseProgress;
+    const percentage = Math.min(Math.max((totalWeightedProgress / this.totalWeight) * 100, 0), 100);
 
-    // Calculate overall progress
-    const totalProgress = (completedWeight + currentPhaseWeightedProgress) / this.totalWeight;
-    const percentage = Math.min(Math.max(totalProgress * 100, 0), 100);
+    // Find current file info for display
+    let currentLoaded = 0;
+    let currentTotal = 0;
+    
+    // Find the file associated with the current phase
+    for (const [url, loaded] of this.loadedBytes.entries()) {
+      const fileSize = this.fileSizes.get(url) || 0;
+      if (loaded < fileSize) { // This file is still downloading
+        currentLoaded = loaded;
+        currentTotal = fileSize;
+        break;
+      }
+    }
 
     this.onProgress({
-      loaded,
-      total,
+      loaded: currentLoaded,
+      total: currentTotal,
       percentage,
-      phase,
+      phase: currentPhase,
       totalLoaded,
       totalSize
     });
@@ -132,12 +150,8 @@ export class ProgressTracker {
    * Marks a phase as complete
    */
   completePhase(phaseName: string) {
-    const phaseIndex = this.phases.findIndex(p => p.name === phaseName);
-    if (phaseIndex !== -1) {
-      this.currentPhaseIndex = phaseIndex;
-      this.updateProgress('', 1, 1, phaseName);
-      this.currentPhaseIndex++;
-    }
+    this.completedPhases.add(phaseName);
+    this.updatePhaseProgress(phaseName, 1.0);
   }
 }
 

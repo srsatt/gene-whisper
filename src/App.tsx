@@ -11,8 +11,6 @@ import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
 import {
   parseGenomeFile,
-  loadClinvarDatabase,
-  loadSnpediaDatabase,
   findSharedVariants,
   convertToMutations,
 } from "./variant_tools";
@@ -30,51 +28,139 @@ import {
   type ProgressInfo,
 } from "./utils/progressTracker";
 
-// Load PRS data files
-async function loadPRSData(
-  fetchWithProgress?: (url: string, phase: string) => Promise<Response>
-) {
-  console.log("Loading PRS data files...");
+// Interface for all loaded data
+interface LoadedData {
+  clinvarMap: Record<string, any>;
+  snpediaMap: Record<string, any>;
+  prsConfigs: any[];
+  indexMap: Record<string, any>;
+  allWeights: any[];
+  demoFileContent?: string;
+}
 
-  const configFetch = fetchWithProgress
-    ? fetchWithProgress(
-        "/data_files/prs_config.json",
-        "Loading PRS configurations"
-      )
-    : fetch("/data_files/prs_config.json");
+// Load all data files in parallel
+async function loadAllData(
+  fetchWithProgress?: (url: string, phase: string) => Promise<Response>,
+  includeDemoFile = false
+): Promise<LoadedData> {
+  console.log("Loading all data files in parallel...");
 
-  const indexFetch = fetchWithProgress
-    ? fetchWithProgress(
-        "/data_files/prs_23andme_index_map.json",
-        "Loading PRS index map"
-      )
-    : fetch("/data_files/prs_23andme_index_map.json");
+  // Define all file URLs and their corresponding phase names
+  const fileLoads = [
+    {
+      url: "/data_files/clinvar.json",
+      phase: "Loading ClinVar database",
+      key: "clinvar",
+    },
+    {
+      url: "/data_files/snpedia.json",
+      phase: "Loading SNPedia database",
+      key: "snpedia",
+    },
+    {
+      url: "/data_files/prs_config.json",
+      phase: "Loading PRS configurations",
+      key: "prsConfig",
+    },
+    {
+      url: "/data_files/prs_23andme_index_map.json",
+      phase: "Loading PRS index map",
+      key: "prsIndex",
+    },
+    {
+      url: "/data_files/prs_weights.json",
+      phase: "Loading PRS weights",
+      key: "prsWeights",
+    },
+  ];
 
-  const weightsFetch = fetchWithProgress
-    ? fetchWithProgress("/data_files/prs_weights.json", "Loading PRS weights")
-    : fetch("/data_files/prs_weights.json");
-
-  const [configResponse, indexResponse, weightsResponse] = await Promise.all([
-    configFetch,
-    indexFetch,
-    weightsFetch,
-  ]);
-
-  if (!configResponse.ok || !indexResponse.ok || !weightsResponse.ok) {
-    throw new Error("Failed to load PRS data files");
+  // Add demo file if needed
+  if (includeDemoFile) {
+    fileLoads.push({
+      url: "/demo_genome.txt",
+      phase: "Loading demo file",
+      key: "demoFile",
+    });
   }
 
-  const [prsConfigs, indexMap, allWeights] = await Promise.all([
-    configResponse.json(),
-    indexResponse.json(),
-    weightsResponse.json(),
-  ]);
+  // Start all downloads in parallel
+  const fetchPromises = fileLoads.map(({ url, phase }) => {
+    return fetchWithProgress ? fetchWithProgress(url, phase) : fetch(url);
+  });
 
+  const responses = await Promise.all(fetchPromises);
+
+  // Check if all responses are OK
+  for (let i = 0; i < responses.length; i++) {
+    if (!responses[i].ok) {
+      throw new Error(
+        `Failed to load ${fileLoads[i].url}: ${responses[i].statusText}`
+      );
+    }
+  }
+
+  // Parse all JSON responses in parallel
+  const dataPromises = responses.map((response, index) => {
+    const { key } = fileLoads[index];
+    return key === "demoFile" ? response.text() : response.json();
+  });
+
+  const allData = await Promise.all(dataPromises);
+
+  // Process the data
+  const clinvarArray = allData[0];
+  const snpediaArray = allData[1];
+  const prsConfigs = allData[2];
+  const indexMap = allData[3];
+  const allWeights = allData[4];
+  const demoFileContent = includeDemoFile ? allData[5] : undefined;
+
+  // Convert arrays to maps for ClinVar and SNPedia
+  const clinvarMap: Record<string, any> = {};
+  for (const variant of clinvarArray) {
+    if (variant.rsid && variant.rsid.startsWith("rs")) {
+      clinvarMap[variant.rsid.toLowerCase()] = {
+        rsid: variant.rsid,
+        reference_allele: variant.reference_allele,
+        alternative_allele: variant.alternative_allele,
+        evidence_level: variant.evidence_level,
+        gene_name: variant.gene_name,
+        phenotype: variant.phenotype,
+        chrom: variant.chrom,
+        position: variant.position,
+      };
+    }
+  }
+
+  const snpediaMap: Record<string, any> = {};
+  for (const variant of snpediaArray) {
+    if (variant.rsid && variant.rsid.startsWith("rs")) {
+      snpediaMap[variant.rsid.toLowerCase()] = {
+        rsid: variant.rsid,
+        reference_allele: variant.reference_allele,
+        alternative_allele: variant.alternative_allele,
+        gene_name: variant.gene_name,
+        pmids: variant.pmids,
+        diseases: variant.diseases,
+        description: variant.description,
+      };
+    }
+  }
+
+  console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
+  console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
   console.log(`Loaded ${prsConfigs.length} PRS configurations`);
   console.log(`Loaded index map with ${Object.keys(indexMap).length} variants`);
   console.log(`Loaded weights for ${allWeights.length} PRS models`);
 
-  return { prsConfigs, indexMap, allWeights };
+  return {
+    clinvarMap,
+    snpediaMap,
+    prsConfigs,
+    indexMap,
+    allWeights,
+    demoFileContent,
+  };
 }
 
 // Filter PRS configs based on user's sex
@@ -123,7 +209,7 @@ async function generateRealReport(
   sharedVariants: any[],
   demographics: Demographics,
   parsedVariants: Record<string, any>,
-  fetchWithProgress?: (url: string, phase: string) => Promise<Response>,
+  loadedData: LoadedData,
   completePhase?: (phase: string) => void
 ): Promise<Report> {
   // Convert shared variants to mutations format
@@ -142,11 +228,10 @@ async function generateRealReport(
   console.log(`  - From ${clinvarCount} ClinVar variants (medical conditions)`);
   console.log(`  - From ${snpediaCount} SNPedia variants (genetic traits)`);
 
-  // Calculate PRS scores
+  // Calculate PRS scores using pre-loaded data
   let prsResults: PRSResult[] = [];
   try {
-    const { prsConfigs, indexMap, allWeights } =
-      await loadPRSData(fetchWithProgress);
+    const { prsConfigs, indexMap, allWeights } = loadedData;
 
     // Filter PRS configs based on user's sex
     const { filteredConfigs, filteredIndices } = filterPRSConfigsBySex(
@@ -349,255 +434,249 @@ function AppContent() {
   const handleStart = async () => {
     if (!state.uploadedFile) return;
 
+    // IMMEDIATELY show loading screen
     dispatch({ type: "SET_PHASE", phase: "processing" });
     dispatch({ type: "SET_PROGRESS", progress: undefined });
 
-    // Define processing phases with weights for progress calculation
-    const phases = [
-      { name: "Parsing genome file", weight: 5 },
-      { name: "Loading ClinVar database", weight: 40 },
-      { name: "Loading SNPedia database", weight: 20 },
-      { name: "Finding shared variants", weight: 10 },
-      { name: "Loading PRS configurations", weight: 10 },
-      { name: "Loading PRS index map", weight: 5 },
-      { name: "Loading PRS weights", weight: 5 },
-      { name: "Calculating PRS scores", weight: 3 },
-      { name: "Generating report", weight: 2 },
-    ];
+    // Use setTimeout to ensure UI updates before heavy operations
+    setTimeout(async () => {
+      // Define processing phases with weights for progress calculation
+      const phases = [
+        { name: "Loading ClinVar database", weight: 40 },
+        { name: "Loading SNPedia database", weight: 20 },
+        { name: "Loading PRS configurations", weight: 10 },
+        { name: "Loading PRS index map", weight: 5 },
+        { name: "Loading PRS weights", weight: 5 },
+        { name: "Parsing genome file", weight: 5 },
+        { name: "Finding shared variants", weight: 10 },
+        { name: "Calculating PRS scores", weight: 3 },
+        { name: "Generating report", weight: 2 },
+      ];
 
-    // Create progress tracker
-    const { fetchWithProgress, completePhase } = createProgressFetch(
-      (progressInfo) => {
-        dispatch({ type: "SET_PROGRESS", progress: progressInfo });
-      },
-      phases
-    );
-
-    try {
-      // Parse the uploaded file
-      completePhase("Parsing genome file");
-      const fileContent = await state.uploadedFile.text();
-      const parsedVariants = parseGenomeFile(fileContent);
-
-      console.log(
-        `Parsed ${Object.keys(parsedVariants).length} variants from file`
+      // Create progress tracker
+      const { fetchWithProgress, completePhase } = createProgressFetch(
+        (progressInfo) => {
+          dispatch({ type: "SET_PROGRESS", progress: progressInfo });
+        },
+        phases
       );
 
-      // Load database files with progress tracking
-      console.log("Loading ClinVar and SNPedia databases...");
-      const [clinvarMap, snpediaMap] = await Promise.all([
-        loadClinvarDatabase(fetchWithProgress),
-        loadSnpediaDatabase(fetchWithProgress),
-      ]);
+      try {
+        // Load ALL data files in parallel first
+        console.log("Starting parallel data loading...");
+        const loadedData = await loadAllData(fetchWithProgress, false);
 
-      console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
-      console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
+        // Parse the uploaded file
+        completePhase("Parsing genome file");
+        const fileContent = await state.uploadedFile!.text();
+        const parsedVariants = parseGenomeFile(fileContent);
 
-      // Find shared variants between user genome and databases
-      completePhase("Finding shared variants");
-      const sharedVariants = findSharedVariants(
-        parsedVariants,
-        clinvarMap,
-        snpediaMap
-      );
-
-      console.log(
-        `Found ${sharedVariants.length} shared variants with clinical significance`
-      );
-
-      // Log breakdown by source
-      const clinvarCount = sharedVariants.filter(
-        (v) => v.source === "clinvar"
-      ).length;
-      const snpediaCount = sharedVariants.filter(
-        (v) => v.source === "snpedia"
-      ).length;
-
-      // Count variants with conditions
-      const withConditions = sharedVariants.filter(
-        (v) =>
-          (v.source === "clinvar" &&
-            v.phenotype &&
-            v.phenotype.trim() !== "") ||
-          (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
-      ).length;
-      const withoutConditions = sharedVariants.length - withConditions;
-
-      console.log(
-        `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
-      );
-      console.log(
-        `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
-      );
-
-      // Log first few results to show sorting
-      if (sharedVariants.length > 0) {
         console.log(
-          "First 3 sorted results:",
-          sharedVariants.slice(0, 3).map((v) => ({
-            rsid: v.rsid,
-            source: v.source,
-            genotype: v.genotype,
-            condition:
-              v.source === "clinvar"
-                ? v.phenotype || "N/A"
-                : v.diseases || "N/A",
-            gene_name: v.gene_name || "N/A",
-          }))
+          `Parsed ${Object.keys(parsedVariants).length} variants from file`
+        );
+
+        // Find shared variants between user genome and databases
+        completePhase("Finding shared variants");
+        const sharedVariants = findSharedVariants(
+          parsedVariants,
+          loadedData.clinvarMap,
+          loadedData.snpediaMap
+        );
+
+        console.log(
+          `Found ${sharedVariants.length} shared variants with clinical significance`
+        );
+
+        // Log breakdown by source
+        const clinvarCount = sharedVariants.filter(
+          (v) => v.source === "clinvar"
+        ).length;
+        const snpediaCount = sharedVariants.filter(
+          (v) => v.source === "snpedia"
+        ).length;
+
+        // Count variants with conditions
+        const withConditions = sharedVariants.filter(
+          (v) =>
+            (v.source === "clinvar" &&
+              v.phenotype &&
+              v.phenotype.trim() !== "") ||
+            (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
+        ).length;
+        const withoutConditions = sharedVariants.length - withConditions;
+
+        console.log(
+          `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
+        );
+        console.log(
+          `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
+        );
+
+        // Log first few results to show sorting
+        if (sharedVariants.length > 0) {
+          console.log(
+            "First 3 sorted results:",
+            sharedVariants.slice(0, 3).map((v) => ({
+              rsid: v.rsid,
+              source: v.source,
+              genotype: v.genotype,
+              condition:
+                v.source === "clinvar"
+                  ? v.phenotype || "N/A"
+                  : v.diseases || "N/A",
+              gene_name: v.gene_name || "N/A",
+            }))
+          );
+        }
+
+        // Generate real report using genetic analysis results
+        completePhase("Generating report");
+        const report = await generateRealReport(
+          sharedVariants,
+          state.demographics,
+          parsedVariants,
+          loadedData,
+          completePhase
+        );
+        saveReport(report);
+        dispatch({ type: "SET_REPORT", report });
+      } catch (error) {
+        console.error("Error generating report:", error);
+        dispatch({ type: "SET_PHASE", phase: "upload" });
+        dispatch({ type: "SET_PROGRESS", progress: undefined });
+        alert(
+          "An error occurred while processing your file. Please try again."
         );
       }
-
-      // Generate real report using genetic analysis results
-      completePhase("Generating report");
-      const report = await generateRealReport(
-        sharedVariants,
-        state.demographics,
-        parsedVariants,
-        fetchWithProgress,
-        completePhase
-      );
-      saveReport(report);
-      dispatch({ type: "SET_REPORT", report });
-    } catch (error) {
-      console.error("Error generating report:", error);
-      dispatch({ type: "SET_PHASE", phase: "upload" });
-      dispatch({ type: "SET_PROGRESS", progress: undefined });
-      alert("An error occurred while processing your file. Please try again.");
-    }
+    }, 0); // Execute on next tick to allow UI to update
   };
 
   // Handle demo processing
   const handleDemo = async () => {
+    // IMMEDIATELY show loading screen
+    dispatch({ type: "SET_PHASE", phase: "processing" });
     dispatch({ type: "SET_PROGRESS", progress: undefined });
 
-    // Define processing phases with weights for progress calculation
-    const phases = [
-      { name: "Loading demo file", weight: 5 },
-      { name: "Parsing genome file", weight: 5 },
-      { name: "Loading ClinVar database", weight: 40 },
-      { name: "Loading SNPedia database", weight: 20 },
-      { name: "Finding shared variants", weight: 10 },
-      { name: "Loading PRS configurations", weight: 10 },
-      { name: "Loading PRS index map", weight: 5 },
-      { name: "Loading PRS weights", weight: 5 },
-      { name: "Calculating PRS scores", weight: 3 },
-      { name: "Generating report", weight: 2 },
-    ];
+    // Use setTimeout to ensure UI updates before heavy operations
+    setTimeout(async () => {
+      // Define processing phases with weights for progress calculation
+      const phases = [
+        { name: "Loading demo file", weight: 5 },
+        { name: "Loading ClinVar database", weight: 40 },
+        { name: "Loading SNPedia database", weight: 20 },
+        { name: "Loading PRS configurations", weight: 10 },
+        { name: "Loading PRS index map", weight: 5 },
+        { name: "Loading PRS weights", weight: 5 },
+        { name: "Parsing genome file", weight: 5 },
+        { name: "Finding shared variants", weight: 7 },
+        { name: "Calculating PRS scores", weight: 2 },
+        { name: "Generating report", weight: 1 },
+      ];
 
-    // Create progress tracker
-    const { fetchWithProgress, completePhase } = createProgressFetch(
-      (progressInfo) => {
-        dispatch({ type: "SET_PROGRESS", progress: progressInfo });
-      },
-      phases
-    );
-
-    try {
-      // Fetch the demo file from public directory
-      const response = await fetchWithProgress(
-        "/demo_genome.txt",
-        "Loading demo file"
-      );
-      if (!response.ok) {
-        throw new Error("Failed to load demo file");
-      }
-
-      const fileContent = await response.text();
-      const demoFile = new File([fileContent], "demo_genome.txt", {
-        type: "text/plain",
-      });
-
-      // Set the demo file and start processing
-      dispatch({ type: "SET_FILE", file: demoFile });
-      dispatch({ type: "SET_PHASE", phase: "processing" });
-
-      // Parse the demo file content
-      completePhase("Parsing genome file");
-      const parsedVariants = parseGenomeFile(fileContent);
-      console.log(
-        `Parsed ${Object.keys(parsedVariants).length} variants from demo file`
+      // Create progress tracker
+      const { fetchWithProgress, completePhase } = createProgressFetch(
+        (progressInfo) => {
+          dispatch({ type: "SET_PROGRESS", progress: progressInfo });
+        },
+        phases
       );
 
-      // Load database files with progress tracking
-      console.log("Loading ClinVar and SNPedia databases...");
-      const [clinvarMap, snpediaMap] = await Promise.all([
-        loadClinvarDatabase(fetchWithProgress),
-        loadSnpediaDatabase(fetchWithProgress),
-      ]);
+      try {
+        // Load ALL data files in parallel (including demo file)
+        console.log("Starting parallel data loading (including demo file)...");
+        const loadedData = await loadAllData(fetchWithProgress, true);
 
-      console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
-      console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
-
-      // Find shared variants between user genome and databases
-      completePhase("Finding shared variants");
-      const sharedVariants = findSharedVariants(
-        parsedVariants,
-        clinvarMap,
-        snpediaMap
-      );
-
-      console.log(
-        `Found ${sharedVariants.length} shared variants with clinical significance`
-      );
-
-      // Log breakdown by source
-      const clinvarCount = sharedVariants.filter(
-        (v) => v.source === "clinvar"
-      ).length;
-      const snpediaCount = sharedVariants.filter(
-        (v) => v.source === "snpedia"
-      ).length;
-
-      // Count variants with conditions
-      const withConditions = sharedVariants.filter(
-        (v) =>
-          (v.source === "clinvar" &&
-            v.phenotype &&
-            v.phenotype.trim() !== "") ||
-          (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
-      ).length;
-      const withoutConditions = sharedVariants.length - withConditions;
-
-      console.log(
-        `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
-      );
-      console.log(
-        `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
-      );
-
-      // Log first few results to show sorting
-      if (sharedVariants.length > 0) {
-        console.log(
-          "First 3 sorted results:",
-          sharedVariants.slice(0, 3).map((v) => ({
-            rsid: v.rsid,
-            source: v.source,
-            genotype: v.genotype,
-            condition:
-              v.source === "clinvar"
-                ? v.phenotype || "N/A"
-                : v.diseases || "N/A",
-            gene_name: v.gene_name || "N/A",
-          }))
+        // Create demo file object
+        const demoFile = new File(
+          [loadedData.demoFileContent!],
+          "demo_genome.txt",
+          {
+            type: "text/plain",
+          }
         );
-      }
 
-      // Generate real report using genetic analysis results
-      completePhase("Generating report");
-      const report = await generateRealReport(
-        sharedVariants,
-        state.demographics,
-        parsedVariants,
-        fetchWithProgress,
-        completePhase
-      );
-      saveReport(report);
-      dispatch({ type: "SET_REPORT", report });
-    } catch (error) {
-      console.error("Error processing demo file:", error);
-      dispatch({ type: "SET_PROGRESS", progress: undefined });
-      alert("An error occurred while loading the demo. Please try again.");
-    }
+        // Set the demo file
+        dispatch({ type: "SET_FILE", file: demoFile });
+
+        // Parse the demo file content
+        completePhase("Parsing genome file");
+        const parsedVariants = parseGenomeFile(loadedData.demoFileContent!);
+        console.log(
+          `Parsed ${Object.keys(parsedVariants).length} variants from demo file`
+        );
+
+        // Find shared variants between user genome and databases
+        completePhase("Finding shared variants");
+        const sharedVariants = findSharedVariants(
+          parsedVariants,
+          loadedData.clinvarMap,
+          loadedData.snpediaMap
+        );
+
+        console.log(
+          `Found ${sharedVariants.length} shared variants with clinical significance`
+        );
+
+        // Log breakdown by source
+        const clinvarCount = sharedVariants.filter(
+          (v) => v.source === "clinvar"
+        ).length;
+        const snpediaCount = sharedVariants.filter(
+          (v) => v.source === "snpedia"
+        ).length;
+
+        // Count variants with conditions
+        const withConditions = sharedVariants.filter(
+          (v) =>
+            (v.source === "clinvar" &&
+              v.phenotype &&
+              v.phenotype.trim() !== "") ||
+            (v.source === "snpedia" && v.diseases && v.diseases.trim() !== "")
+        ).length;
+        const withoutConditions = sharedVariants.length - withConditions;
+
+        console.log(
+          `ClinVar variants: ${clinvarCount}, SNPedia variants: ${snpediaCount}`
+        );
+        console.log(
+          `With conditions: ${withConditions}, Without conditions: ${withoutConditions} (sorted to end)`
+        );
+
+        // Log first few results to show sorting
+        if (sharedVariants.length > 0) {
+          console.log(
+            "First 3 sorted results:",
+            sharedVariants.slice(0, 3).map((v) => ({
+              rsid: v.rsid,
+              source: v.source,
+              genotype: v.genotype,
+              condition:
+                v.source === "clinvar"
+                  ? v.phenotype || "N/A"
+                  : v.diseases || "N/A",
+              gene_name: v.gene_name || "N/A",
+            }))
+          );
+        }
+
+        // Generate real report using genetic analysis results
+        completePhase("Generating report");
+        const report = await generateRealReport(
+          sharedVariants,
+          state.demographics,
+          parsedVariants,
+          loadedData,
+          completePhase
+        );
+        saveReport(report);
+        dispatch({ type: "SET_REPORT", report });
+      } catch (error) {
+        console.error("Error processing demo file:", error);
+        dispatch({ type: "SET_PHASE", phase: "upload" });
+        dispatch({ type: "SET_PROGRESS", progress: undefined });
+        alert("An error occurred while loading the demo. Please try again.");
+      }
+    }, 0); // Execute on next tick to allow UI to update
   };
 
   // Handle cancel processing

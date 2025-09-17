@@ -10,8 +10,6 @@ interface ChatSidebarProps {
   selectedFinding?: Finding;
   onSendMessage: (content: string) => void;
   onClose?: () => void;
-  isMobile?: boolean;
-  isOpen?: boolean;
 }
 
 export default function ChatSidebar({
@@ -19,8 +17,6 @@ export default function ChatSidebar({
   selectedFinding,
   onSendMessage,
   onClose,
-  isMobile = false,
-  isOpen = true,
 }: ChatSidebarProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,8 +38,6 @@ export default function ChatSidebar({
     onSendMessage(prompt);
   };
 
-  if (isMobile && !isOpen) return null;
-
   const content = (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
@@ -54,7 +48,7 @@ export default function ChatSidebar({
               {CHAT_HEADER}
             </h2>
           </div>
-          {(isMobile || onClose) && (
+          {onClose && (
             <button
               onClick={onClose}
               className="p-1 rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -222,19 +216,6 @@ export default function ChatSidebar({
       </div>
     </div>
   );
-
-  if (isMobile) {
-    return (
-      <div
-        className={cn(
-          "fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 shadow-lg transition-transform duration-300",
-          isOpen ? "translate-y-0" : "translate-y-full"
-        )}
-      >
-        <div className="h-96">{content}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-100">

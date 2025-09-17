@@ -1,6 +1,6 @@
 // src/pages/ReportPage.tsx
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import type { Report, ChatMessage } from "../models";
 import ReportLayout from "../components/ReportLayout";
@@ -22,18 +22,6 @@ export default function ReportPage({
   onSendMessage,
   onBack,
 }: ReportPageProps) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
   // Scroll to top when report page loads
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -134,7 +122,6 @@ export default function ReportPage({
           chatMessages={chatMessages}
           onDiscuss={onDiscuss}
           onSendMessage={onSendMessage}
-          isMobile={isMobile}
         />
       </div>
     </div>

@@ -15,7 +15,6 @@ interface ReportLayoutProps {
   chatMessages: ChatMessage[];
   onDiscuss: (findingId: string) => void;
   onSendMessage: (content: string) => void;
-  isMobile?: boolean;
 }
 
 interface FindingCardProps {
@@ -205,7 +204,6 @@ export default function ReportLayout({
   chatMessages,
   onDiscuss,
   onSendMessage,
-  isMobile = false,
 }: ReportLayoutProps) {
   const [evidenceExpanded, setEvidenceExpanded] = useState<
     Record<EvidenceLevel, boolean>
@@ -255,143 +253,6 @@ export default function ReportLayout({
   const highRiskFindings = report.findings.filter(
     (f) => f.riskLevel === "High"
   );
-
-  if (isMobile) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-4 py-3">
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full">
-              Quality: {report.quality}
-            </span>
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-              {report.vendor}
-            </span>
-            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-              {report.generatedAt.toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-
-        {/* Proactive advice */}
-        {highRiskFindings.length > 0 && (
-          <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0">
-                <svg
-                  className="w-5 h-5 text-amber-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-amber-800">
-                  Personalized Tips
-                </h3>
-                <p className="text-xs text-amber-700 mt-1">
-                  You have {highRiskFindings.length} high-risk finding
-                  {highRiskFindings.length > 1 ? "s" : ""}. Consider discussing
-                  these with your healthcare provider.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Evidence groups */}
-        <div className="px-4 py-4 space-y-4">
-          {(["A", "B", "C"] as EvidenceLevel[]).map((level) => {
-            const findings = findingsByEvidence[level] || [];
-            if (findings.length === 0) return null;
-
-            return (
-              <div key={level} className="space-y-3">
-                <button
-                  onClick={() => toggleEvidenceLevel(level)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {EVIDENCE_MAP[level]} ({findings.length})
-                  </h2>
-                  <svg
-                    className={cn(
-                      "w-5 h-5 transition-transform",
-                      evidenceExpanded[level] && "rotate-180"
-                    )}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {evidenceExpanded[level] && (
-                  <div className="space-y-4">
-                    {findings.map((finding) => (
-                      <FindingCard
-                        key={finding.id}
-                        finding={finding}
-                        demographics={report.demographics}
-                        onDiscuss={(id) => {
-                          onDiscuss(id);
-                          setChatOpen(true);
-                        }}
-                        isSelected={finding.id === selectedFindingId}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Chat button */}
-        <button
-          onClick={() => setChatOpen(true)}
-          className="fixed bottom-4 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label="Open chat"
-        >
-          <svg
-            className="w-6 h-6 mx-auto"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-        </button>
-
-        {/* Chat sidebar */}
-        <ChatSidebar
-          messages={chatMessages}
-          selectedFinding={selectedFinding}
-          onSendMessage={onSendMessage}
-          onClose={() => setChatOpen(false)}
-          isMobile={true}
-          isOpen={chatOpen}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full">
@@ -513,7 +374,6 @@ export default function ReportLayout({
         messages={chatMessages}
         selectedFinding={selectedFinding}
         onSendMessage={onSendMessage}
-        isMobile={false}
       />
     </div>
   );

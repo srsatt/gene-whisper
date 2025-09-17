@@ -1,6 +1,7 @@
 // src/pages/ReportPage.tsx
 
 import React, { useState, useEffect } from "react";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import type { Report, ChatMessage } from "../models";
 import ReportLayout from "../components/ReportLayout";
 
@@ -76,23 +77,27 @@ export default function ReportPage({
 
           <div className="flex items-center space-x-3">
             {/* Export button */}
-            <button
-              onClick={() => {
-                const dataStr = JSON.stringify(report, null, 2);
-                const dataBlob = new Blob([dataStr], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = `genetic-report-${report.generatedAt.toISOString().split("T")[0]}.json`;
-                link.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Export Report
-            </button>
+            <Tooltip.Provider>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <button
+                    disabled
+                    className="px-3 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-md cursor-not-allowed"
+                  >
+                    Export Report
+                  </button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="z-50 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-md shadow-md animate-in fade-in-0 zoom-in-95"
+                    sideOffset={5}
+                  >
+                    Coming soon
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
 
             {/* Settings dropdown */}
             {/* <div className="relative">

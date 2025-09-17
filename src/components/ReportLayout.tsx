@@ -88,7 +88,7 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
           <button
             type="button"
             onClick={() => onDiscuss(mutation.rsid)}
-            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             Discuss
           </button>
@@ -104,7 +104,7 @@ function StructuredMutationCard({
   isSelected,
 }: MutationCardProps) {
   const genotype = mutation.matched_genotype!;
-  
+
   // Extract SNP description from raw data
   let snpDescription = "";
   if (mutation.raw) {
@@ -157,7 +157,7 @@ function StructuredMutationCard({
     topics: Array.from(allTags.topics),
     conditions: Array.from(allTags.conditions)
   };
-  
+
   // Get color based on repute
   const getReputeColor = (repute: string) => {
     switch (repute.toLowerCase()) {
@@ -324,7 +324,7 @@ function StructuredMutationCard({
         {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
             <span className="text-yellow-800">
-              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''} 
+              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''}
               {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
             </span>
           </div>
@@ -371,7 +371,7 @@ function EnhancedMutationCard({
 
   // Extract SNP description - try multiple sources
   let snpDescription = "";
-  
+
   // First, try to get description from the mutation's raw data (parsed from DatabaseVariant)
   if (mutation.raw) {
     try {
@@ -383,7 +383,7 @@ function EnhancedMutationCard({
       // Ignore parsing errors
     }
   }
-  
+
   // Fallback to extracting from snpData sections if available
   if (!snpDescription && snpData.sections) {
     for (const section of snpData.sections) {
@@ -622,7 +622,7 @@ function EnhancedMutationCard({
         {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
             <span className="text-yellow-800">
-              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''} 
+              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''}
               {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
             </span>
           </div>
@@ -701,7 +701,7 @@ function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
           <button
             type="button"
             onClick={() => onDiscuss(prsResult.pgs_id)}
-            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             Discuss
           </button>
@@ -953,11 +953,11 @@ export default function ReportLayout({
                     </div>
 
                     {hasNormalRisk && (
-                      <div className="flex justify-center pt-6">
+                      <div className="flex justify-center pt-6 mb-16">
                       <button
                         type="button"
                         onClick={toggleNormalRisk}
-                          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer"
                         >
                           {showNormalRisk
                             ? `Collapse (${normalRiskResults.length} Normal Risk)`
@@ -1041,7 +1041,7 @@ export default function ReportLayout({
                         <button
                           type="button"
                           onClick={showMore}
-                          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer"
                         >
                           Show More ({allMutations.length - visibleCount}{" "}
                           remaining)

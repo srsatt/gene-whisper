@@ -32,11 +32,11 @@ export default function ReportPage({
       {/* Header with back button */}
       <div className="h-[73px]">
         <div className="fixed top-[37px] left-0 right-0 z-1 flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center space-x-3">
               <button
                 onClick={onBack}
-                className="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+                className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
                 aria-label="Go back to upload"
               >
                 <svg
@@ -66,7 +66,7 @@ export default function ReportPage({
 
             <div className="flex items-center space-x-3">
               {/* Export button */}
-              <Tooltip.Provider>
+              {/* <Tooltip.Provider>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
@@ -86,7 +86,7 @@ export default function ReportPage({
                     </Tooltip.Content>
                   </Tooltip.Portal>
                 </Tooltip.Root>
-              </Tooltip.Provider>
+              </Tooltip.Provider> */}
 
               {/* Settings dropdown */}
               {/* <div className="relative">

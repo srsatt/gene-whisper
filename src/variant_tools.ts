@@ -106,10 +106,10 @@ export function parseMyHeritageFile(fileContent: string): Record<string, InputVa
 export async function loadClinvarDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
-  const response = fetchWithProgress 
+  const response = fetchWithProgress
     ? await fetchWithProgress('/data_files/clinvar.json', 'Loading ClinVar database')
     : await fetch('/data_files/clinvar.json');
-  
+
   const clinvarArray = await response.json();
 
   const clinvarMap: Record<string, DatabaseVariant> = {};
@@ -143,7 +143,7 @@ export async function loadSnpDatabase(
   const response = fetchWithProgress
     ? await fetchWithProgress('/data_files/snp-data.json', 'Loading SNP data')
     : await fetch('/data_files/snp-data.json');
-  
+
   const snpDataObject = await response.json();
 
   const snpDataMap: Record<string, DatabaseVariant> = {};
@@ -157,7 +157,7 @@ export async function loadSnpDatabase(
       let pmids: string[] = [];
       let reference_allele = "";
       let alternative_allele = "";
-      
+
       // Look through sections for information
       if (snpData.sections && Array.isArray(snpData.sections)) {
         for (const section of snpData.sections) {
@@ -173,7 +173,7 @@ export async function loadSnpDatabase(
               }
             }
           }
-          
+
           // Extract gene name, PMIDs, and allele info from templates
           if (section.templates && Array.isArray(section.templates)) {
             for (const template of section.templates) {
@@ -182,7 +182,7 @@ export async function loadSnpDatabase(
               } else if (template.gene && !gene_name) {
                 gene_name = template.gene;
               }
-              
+
               if (template.pmid) {
                 pmids.push(template.pmid);
               }
@@ -192,14 +192,14 @@ export async function loadSnpDatabase(
                 // Parse genotypes like "(C;C)", "(C;T)", "(T;T)"
                 const geno1Match = template.geno1.match(/\(([ACGT]);([ACGT])\)/);
                 const geno2Match = template.geno2.match(/\(([ACGT]);([ACGT])\)/);
-                
+
                 if (geno1Match && geno2Match) {
                   // geno1 is typically homozygous reference, geno2 is heterozygous
                   const ref1 = geno1Match[1];
                   const ref2 = geno1Match[2];
                   const het1 = geno2Match[1];
                   const het2 = geno2Match[2];
-                  
+
                   // Reference allele is the one that appears in both positions of geno1
                   if (ref1 === ref2) {
                     reference_allele = ref1;
@@ -403,7 +403,7 @@ export function findSharedVariants(
                          (a.source === 'snpedia' && a.diseases && a.diseases.trim() !== '');
     const bHasCondition = (b.source === 'clinvar' && b.phenotype && b.phenotype.trim() !== '') ||
                          (b.source === 'snpedia' && b.diseases && b.diseases.trim() !== '');
-    
+
     if (aHasCondition !== bHasCondition) {
       return aHasCondition ? -1 : 1; // Variants with conditions come first
     }
@@ -427,7 +427,7 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
   return resultVariants
     .filter(variant => {
       // Include variants that have either phenotype (ClinVar) or diseases/description (SNPedia)
-      const hasCondition = (variant.source === 'clinvar' && variant.phenotype) || 
+      const hasCondition = (variant.source === 'clinvar' && variant.phenotype) ||
                           (variant.source === 'snpedia' && (variant.diseases || variant.description));
       const hasGene = variant.gene_name && variant.gene_name.trim() !== '';
       return hasCondition && hasGene;
@@ -437,13 +437,15 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
       evidence_level: variant.evidence_level || '1 Star', // ClinVar has this, SNPedia defaults to 1 Star
       gene_name: variant.gene_name,
       // Use phenotype for ClinVar, diseases or description for SNPedia
-      phenotype: variant.source === 'clinvar' 
-        ? variant.phenotype 
+      phenotype: variant.source === 'clinvar'
+        ? variant.phenotype
         : (variant.diseases || variant.description || 'Genetic variant'),
       chrom: variant.chrom?.toString() || 'Unknown',
       position: variant.position || 0,
       reference_allele: variant.reference_allele,
       alternative_allele: variant.alternative_allele,
+        genotype: variant.genotype,
+        raw: JSON.stringify(variant),
       source: variant.source,
       snpData: variant.snpData // Include SnpData for enhanced rendering
     }));

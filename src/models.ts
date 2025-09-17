@@ -14,6 +14,8 @@ export interface Mutation {
   position: number;
   reference_allele: string;
   alternative_allele: string;
+  genotype: 1|2;
+  raw: string;
   source?: string;
   snpData?: import('./snp-data-raw').SnpData; // Enhanced data for rendering
 }

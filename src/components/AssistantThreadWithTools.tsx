@@ -6,13 +6,18 @@ import {
   MessagePrimitive,
   AssistantRuntimeProvider,
   useLocalRuntime,
+  useMessage,
   type ChatModelAdapter,
 } from "@assistant-ui/react"
 import "@assistant-ui/styles/index.css"
 import { type CoreMessage, streamText } from "ai"
 import { z } from "zod"
-import { useMemo } from "react"
+import { useMemo, useEffect, useRef } from "react"
+import type { Emitter } from "nanoevents"
 import { CustomWebLLM } from "../llm/custom-web-llm"
+import type { Mutation } from "../models"
+import type { PRSResult } from "../prs"
+import { Streamdown } from "streamdown"
 
 // Define tools using AI SDK format
 const consoleLogTool = {
@@ -35,16 +40,55 @@ const UserMessage = () => (
   </MessagePrimitive.Root>
 )
 
-const AssistantMessage = () => (
-  <MessagePrimitive.Root className="flex justify-start">
-    <div className="max-w-sm rounded-2xl rounded-bl-md bg-gray-100 px-4 py-2 text-gray-900">
-      <MessagePrimitive.Parts />
-    </div>
-  </MessagePrimitive.Root>
-)
+const AssistantMessage = () => {
+  const message = useMessage()
+  const isRunning = message.status?.type === "running"
+  
+  return (
+    <MessagePrimitive.Root className="flex justify-start">
+      <div className="max-w-sm rounded-2xl rounded-bl-md bg-gray-100 px-4 py-2 text-gray-900 relative">
+        <div key={message.id}>
+          {message.content.filter(part => part.type === 'text').map((part, index) => (
+                        <Streamdown key={index}>{part.text}</Streamdown>
 
-export function AssistantThreadWithTools() {
+          ))}
+        </div>
+        {isRunning && (
+          <span className="animate-pulse ml-1 inline-block w-2 h-4 bg-gray-400 rounded-sm absolute -right-1 top-1/2 transform -translate-y-1/2" />
+        )}
+      </div>
+    </MessagePrimitive.Root>
+  )
+}
+
+// Define common context interface
+interface GeneticContext {
+  type: "mutation" | "prs";
+  name: string;
+  id: string;
+  data: string; // JSON stringified data
+}
+
+// Define the events interface
+interface ContextEvents {
+  'context-message': (data: {
+    message: string;
+    context?: {
+      type: "mutation" | "prs";
+      data: Mutation | PRSResult;
+    };
+  }) => void;
+  'set-context': (context: GeneticContext | null) => void;
+}
+
+interface AssistantThreadWithToolsProps {
+  eventEmitter?: Emitter<ContextEvents>;
+}
+
+export function AssistantThreadWithTools({ eventEmitter }: AssistantThreadWithToolsProps = {}) {
   const model = useMemo(() => new CustomWebLLM(), [])
+  const runtimeRef = useRef<ReturnType<typeof useLocalRuntime> | null>(null)
+  const currentContextRef = useRef<GeneticContext | null>(null)
 
   const SdkToolAdapter: ChatModelAdapter = useMemo(
     () => ({
@@ -63,14 +107,26 @@ export function AssistantThreadWithTools() {
           const result = streamText({
             model,
             messages: formattedMessages,
-            tools: {
-              console_log: consoleLogTool,
-            },
-            system:
-              `You are a helpful AI assistant, inside local chat app with genetic data integrations.
+            // tools: {
+            //   console_log: consoleLogTool,
+            // },
+            system: (() => {
+              let systemPrompt = `You are a helpful AI assistant, inside local chat app with genetic data integrations.
               Your main goal is to help the user explore their genetic data and answer their questions.
-              To help the user navigate in the app, you can use tools, that are available to you.
-              `,
+              To help the user navigate in the app, you can use tools, that are available to you.`
+              
+              // Add context if available
+              if (currentContextRef.current) {
+                const context = currentContextRef.current
+                systemPrompt += `\n\nCURRENT CONTEXT: You are currently discussing ${context.type === "mutation" ? "a genetic mutation" : "a polygenic risk score"} "${context.name}" (ID: ${context.id}).
+                
+Detailed information: ${context.data}
+
+When the user asks questions, they are likely referring to this ${context.type}. Use this information to provide relevant and specific answers.`
+              }
+              
+              return systemPrompt
+            })(),
             abortSignal,
           })
 
@@ -186,41 +242,82 @@ export function AssistantThreadWithTools() {
   )
 
   const runtime = useLocalRuntime(SdkToolAdapter)
+  runtimeRef.current = runtime
+
+  // Listen for events from the event emitter
+  useEffect(() => {
+    if (!eventEmitter) return
+
+    const unsubscribeSetContext = eventEmitter.on('set-context', (context) => {
+      console.log("🔍 Debug - Setting context:", context)
+      currentContextRef.current = context
+      
+      // If there's a new context, we could optionally restart the conversation
+      // or add a system message to inform about the context change
+      if (context && runtimeRef.current) {
+        runtimeRef.current.thread.append({
+          role: "system",
+          content: [{ 
+            type: "text", 
+            text: `Context updated: Now discussing ${context.type === "mutation" ? "genetic mutation" : "polygenic risk score"} "${context.name}" (${context.id}).` 
+          }]
+        })
+      }
+    })
+
+    const unsubscribeContextMessage = eventEmitter.on('context-message', ({ message }) => {
+      console.log("🔍 Debug - Sending message:", message)
+      
+      // Send only the message, context is handled via system prompt
+      if (runtimeRef.current) {
+        runtimeRef.current.thread.append({
+          role: "user",
+          content: [{ type: "text", text: message }]
+        })
+      }
+    })
+
+    return () => {
+      unsubscribeSetContext()
+      unsubscribeContextMessage()
+    }
+  }, [eventEmitter])
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <div className="mx-auto h-[600px] max-w-4xl">
-        <ThreadPrimitive.Root className="flex h-full flex-col rounded-lg border border-gray-200 bg-white shadow-sm">
-          <div className="rounded-t-lg border-b border-gray-200 bg-gray-50 p-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Medical AI Assistant with Tools
-            </h2>
-            <p className="text-sm text-gray-600">
-              Powered by II-Medical-8B - Try: "log to console 123"
+      <div className="h-full flex flex-col">
+        <ThreadPrimitive.Root className="flex h-full flex-col bg-white">
+          <div className="border-b border-gray-200 bg-gray-50 p-3">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Medical AI Assistant
+            </h3>
+            <p className="text-xs text-gray-600">
+              Powered by II-Medical-8B
             </p>
           </div>
           <ThreadPrimitive.Viewport className="flex-1 space-y-4 overflow-y-auto p-4">
             <ThreadPrimitive.Messages
               components={{
                 UserMessage,
+                
                 AssistantMessage,
               }}
             />
           </ThreadPrimitive.Viewport>
-          <div className="border-t border-gray-200 p-4">
-            <ComposerPrimitive.Root className="flex items-end gap-3">
+          <div className="border-t border-gray-200 p-3">
+            <ComposerPrimitive.Root className="flex items-end gap-2">
               <ComposerPrimitive.Input
                 placeholder={"Write a message..."}
-                className="min-h-[40px] flex-1 resize-none rounded-full border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="min-h-[36px] flex-1 resize-none rounded-full border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <ComposerPrimitive.Send asChild>
                 <button
                   type="button"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <svg
-                    width="16"
-                    height="16"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

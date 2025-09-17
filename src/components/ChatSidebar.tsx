@@ -1,47 +1,114 @@
 // src/components/ChatSidebar.tsx
 
-import React, { useState, useRef, useEffect } from "react";
+import { useMemo, useEffect, useCallback } from "react";
+import { createNanoEvents } from "nanoevents";
 import type { ChatMessage, Mutation } from "../models";
 import type { PRSResult } from "../prs";
 import { CHAT_HEADER, PROMPTS } from "../assets/copy";
 import { cn } from "../tools";
+import { AssistantThreadWithTools } from "./AssistantThreadWithTools";
 
 interface ChatSidebarProps {
-  messages: ChatMessage[];
+  messages?: ChatMessage[]; // Made optional since we're not using it anymore
   selectedMutation?: Mutation;
   selectedItem?:
     | { type: "mutation"; data: Mutation }
     | { type: "prs"; data: PRSResult }
     | null;
-  onSendMessage: (content: string) => void;
+  onSendMessage?: (content: string) => void; // Made optional since we're not using it anymore
   onClose?: () => void;
 }
 
+// Define common context interface
+interface GeneticContext {
+  type: "mutation" | "prs";
+  name: string;
+  id: string;
+  data: string; // JSON stringified data
+}
+
+// Define the events interface for context messaging
+interface ContextEvents {
+  'context-message': (data: {
+    message: string;
+    context?: {
+      type: "mutation" | "prs";
+      data: Mutation | PRSResult;
+    };
+  }) => void;
+  'set-context': (context: GeneticContext | null) => void;
+}
+
 export default function ChatSidebar({
-  messages,
   selectedMutation,
   selectedItem,
-  onSendMessage,
   onClose,
 }: ChatSidebarProps) {
-  const [inputValue, setInputValue] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Create event emitter for context-aware messaging
+  const eventEmitter = useMemo(() => createNanoEvents<ContextEvents>(), []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Helper function to create context from selected item
+  const createGeneticContext = useCallback((item: { type: "mutation"; data: Mutation } | { type: "prs"; data: PRSResult } | null): GeneticContext | null => {
+    if (!item) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputValue.trim()) {
-      onSendMessage(inputValue.trim());
-      setInputValue("");
+    if (item.type === "mutation") {
+      const mutation = item.data;
+      return {
+        type: "mutation",
+        name: `${mutation.rsid} (${mutation.gene_name})`,
+        id: mutation.rsid,
+        data: JSON.stringify({
+          rsid: mutation.rsid,
+          gene_name: mutation.gene_name,
+          phenotype: mutation.phenotype,
+          evidence_level: mutation.evidence_level,
+          genotype: mutation.genotype,
+          genotype_comment: "  /** * The user's genotype code.\n" +
+              "   * 1: Heterozygous (one copy of the alternative allele)\n" +
+              "   * 2: Homozygous (two copies of the alternative allele)\n" +
+              "   */"+
+              "  /** * The user's genotype code. Use is to explain user mutations\n",
+
+          chrom: mutation.chrom,
+          position: mutation.position,
+          reference_allele: mutation.reference_allele,
+          alternative_allele: mutation.alternative_allele,
+          source: mutation.source
+        })
+      };
+    } else {
+      const prs = item.data;
+      return {
+        type: "prs",
+        name: prs.name,
+        id: prs.name,
+        data: JSON.stringify({
+          name: prs.name,
+          score: prs.score,
+          risk: prs.risk,
+          lower_cutoff: prs.lower_cutoff,
+          upper_cutoff: prs.upper_cutoff,
+          lower_is_better: prs.lower_is_better
+        })
+      };
     }
-  };
+  }, []);
+
+  // Set context when selected item changes
+  useEffect(() => {
+    const currentItem = selectedItem || (selectedMutation ? { type: "mutation" as const, data: selectedMutation } : null);
+    const context = createGeneticContext(currentItem);
+
+    console.log("🔍 Debug - Setting context:", context);
+    eventEmitter.emit('set-context', context);
+  }, [selectedItem, selectedMutation, eventEmitter, createGeneticContext]);
 
   const handlePromptClick = (prompt: string) => {
-    onSendMessage(prompt);
+    // Send only the prompt message - context is handled by system prompt
+    console.log("🔍 Debug - Emitting prompt:", prompt);
+    eventEmitter.emit('context-message', {
+      message: prompt
+    });
   };
 
   const content = (
@@ -56,6 +123,7 @@ export default function ChatSidebar({
           </div>
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               className="p-1 rounded-md text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Close chat"
@@ -66,6 +134,7 @@ export default function ChatSidebar({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
+                <title>Close</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -102,74 +171,21 @@ export default function ChatSidebar({
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-300 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            <p className="text-sm">
-              {selectedItem?.type === "mutation" && selectedItem.data
-                ? `Ask me about ${selectedItem.data.rsid} (${selectedItem.data.gene_name})`
-                : selectedItem?.type === "prs" && selectedItem.data
-                  ? `Ask me about ${selectedItem.data.name} (${selectedItem.data.pgs_id})`
-                  : selectedMutation
-                    ? `Ask me about ${selectedMutation.rsid} (${selectedMutation.gene_name})`
-                    : "Select a mutation or PRS to start discussing"}
-            </p>
-          </div>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex",
-                message.role === "user" ? "justify-end" : "justify-start"
-              )}
-            >
-              <div
-                className={cn(
-                  "max-w-xs lg:max-w-md px-3 py-2 rounded-lg text-sm",
-                  message.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-900"
-                )}
-              >
-                {message.content}
-                {message.role === "assistant" && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <button className="text-xs px-2 py-1 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30">
-                      Sources
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
+      {/* Assistant Thread */}
+      <div className="flex-1 overflow-hidden">
+        <AssistantThreadWithTools eventEmitter={eventEmitter} />
       </div>
 
       {/* Suggested prompts */}
-      {messages.length === 0 && selectedMutation && (
+      {selectedMutation && (
         <div className="flex-shrink-0 px-4 py-2 border-t border-gray-100">
           <div className="space-y-2">
             <p className="text-xs text-gray-500">Suggested questions:</p>
             <div className="flex flex-wrap gap-1">
-              {PROMPTS.map((prompt, index) => (
+              {PROMPTS.map((prompt) => (
                 <button
-                  key={index}
+                  key={prompt}
+                  type="button"
                   onClick={() => handlePromptClick(prompt)}
                   className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -180,45 +196,6 @@ export default function ChatSidebar({
           </div>
         </div>
       )}
-
-      {/* Input */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={
-              selectedMutation
-                ? "Ask about this mutation..."
-                : "Select a mutation first"
-            }
-            disabled={!selectedMutation}
-            className="pl-2 flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-          />
-          <button
-            type="submit"
-            disabled={!inputValue.trim() || !selectedMutation}
-            className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Send message"
-          >
-            <svg
-              className="w-4 h-4 rotate-90"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              />
-            </svg>
-          </button>
-        </form>
-      </div>
     </div>
   );
 

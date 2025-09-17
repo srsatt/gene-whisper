@@ -32,10 +32,12 @@
     "dexie": "^4.2.0",
     "idb-keyval": "^6.2.2",
     "lucide-react": "^0.544.0",
+    "nanoevents": "^9.1.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
     "remark-gfm": "^4.0.1",
+    "streamdown": "^1.3.0",
     "vite-plugin-pwa": "^1.0.3",
     "zod": "^4.1.8"
   },

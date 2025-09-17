@@ -1,9 +1,9 @@
 // src/pages/UploadPage.tsx
 
 import React from "react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Loader2 } from "lucide-react";
 import type { Demographics } from "../models";
-import { UPLOAD_HELPER, START_HELPER } from "../assets/copy";
+import { UPLOAD_HELPER } from "../assets/copy";
 import FileDropzone from "../components/FileDropzone";
 import DemographicsForm from "../components/DemographicsForm";
 import { DNAIcons } from "../components/DNAIcons";
@@ -28,6 +28,9 @@ export default function UploadPage({
   isProcessing = false,
 }: UploadPageProps) {
   const [showError, setShowError] = React.useState(false);
+  const [loadingButton, setLoadingButton] = React.useState<
+    "start" | "demo" | null
+  >(null);
 
   const handleStartClick = () => {
     if (!selectedFile) {
@@ -35,7 +38,13 @@ export default function UploadPage({
       return;
     }
     setShowError(false);
+    setLoadingButton("start");
     onStart();
+  };
+
+  const handleDemoClick = () => {
+    setLoadingButton("demo");
+    onDemo();
   };
 
   // Clear error when file is selected
@@ -44,6 +53,13 @@ export default function UploadPage({
       setShowError(false);
     }
   }, [selectedFile]);
+
+  // Clear loading state when processing starts
+  React.useEffect(() => {
+    if (isProcessing) {
+      setLoadingButton(null);
+    }
+  }, [isProcessing]);
 
   return (
     <div className="py-12">
@@ -95,24 +111,37 @@ export default function UploadPage({
 
           {/* Start Processing */}
           <div>
-            <div className="flex items-center ">
-              <div className="">
+            <div className="flex items-center mt-12">
+              <div>
                 <button
                   onClick={handleStartClick}
-                  disabled={isProcessing}
-                  className="w-full sm:w-auto px-8 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={isProcessing || loadingButton !== null}
+                  className="w-full sm:w-auto px-8 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center"
                 >
-                  {isProcessing ? "Processing..." : "Start Processing"}
+                  {loadingButton === "start" && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  {loadingButton === "start"
+                    ? "Starting..."
+                    : isProcessing
+                      ? "Processing..."
+                      : "Start Processing"}
                 </button>
               </div>
               <div className="mx-2">or</div>
               <button
-                onClick={onDemo}
-                disabled={isProcessing}
+                onClick={handleDemoClick}
+                disabled={isProcessing || loadingButton !== null}
                 className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                <div className="w-4 h-4 mr-2 mt-1/2">{DNAIcons.flask}</div>
-                Try Demo with Sample Data
+                {loadingButton === "demo" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <div className="w-4 h-4 mr-2 mt-1/2">{DNAIcons.flask}</div>
+                )}
+                {loadingButton === "demo"
+                  ? "Starting Demo..."
+                  : "Try Demo with Sample Data"}
               </button>
             </div>
 

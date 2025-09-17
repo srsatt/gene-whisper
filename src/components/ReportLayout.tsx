@@ -144,7 +144,6 @@ function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
           </div>
           <div className="text-xs text-gray-500 space-y-1">
             <div>
-              PGS ID:{" "}
               <a
                 href={`https://www.pgscatalog.org/score/${prsResult.pgs_id}/`}
                 target="_blank"
@@ -154,10 +153,6 @@ function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
                 {prsResult.pgs_id}
               </a>
             </div>
-            <div>Raw Score: {prsResult.score.toFixed(3)}</div>
-            {prsResult.sex !== "both" && (
-              <div>Target: {prsResult.sex === "male" ? "Male" : "Female"}</div>
-            )}
           </div>
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
@@ -300,7 +295,7 @@ export default function ReportLayout({
   const visibleMutations = allMutations.slice(0, visibleCount);
   const hasMore = visibleCount < allMutations.length;
 
-  // Sort PRS results from high risk to low risk
+  // Sort PRS results: high risk, low risk, normal risk
   const sortedPrsResults = [...prsResults].sort((a, b) => {
     // Helper function to get numeric risk value for sorting
     const getRiskValue = (risk: PRSResult["risk"]) => {
@@ -311,9 +306,9 @@ export default function ReportLayout({
       switch (risk) {
         case "high":
           return 3;
-        case "normal":
-          return 2;
         case "low":
+          return 2;
+        case "normal":
           return 1;
         default:
           return 0;

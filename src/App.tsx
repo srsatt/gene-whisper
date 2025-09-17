@@ -16,7 +16,7 @@ import {
   findSharedVariants,
   convertToMutations,
 } from "./variant_tools";
-import { calculateAllPrs, type PRSResult } from "./prs";
+import { calculateAllPrs, type PRSResult, type PRSConfig } from "./prs";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
@@ -53,6 +53,47 @@ async function loadPRSData() {
   return { prsConfigs, indexMap, allWeights };
 }
 
+// Filter PRS configs based on user's sex
+function filterPRSConfigsBySex(
+  prsConfigs: PRSConfig[],
+  userSex?: string
+): { filteredConfigs: PRSConfig[]; filteredIndices: number[] } {
+  if (!userSex || userSex === "Intersex" || userSex === "Prefer not to say") {
+    // If no sex specified or non-binary, include all configs
+    return {
+      filteredConfigs: prsConfigs,
+      filteredIndices: prsConfigs.map((_, index) => index),
+    };
+  }
+
+  // Map demographics sex to PRS config sex format
+  const prsConfigSex =
+    userSex === "Male" ? "male" : userSex === "Female" ? "female" : null;
+
+  if (!prsConfigSex) {
+    // If we can't map the sex, include all configs
+    return {
+      filteredConfigs: prsConfigs,
+      filteredIndices: prsConfigs.map((_, index) => index),
+    };
+  }
+
+  const filteredData: { config: PRSConfig; originalIndex: number }[] = [];
+
+  prsConfigs.forEach((config, index) => {
+    const configSex = config.sex as string;
+    // Include if sex matches or if the config is for both sexes
+    if (configSex === "both" || configSex === prsConfigSex) {
+      filteredData.push({ config, originalIndex: index });
+    }
+  });
+
+  return {
+    filteredConfigs: filteredData.map((item) => item.config),
+    filteredIndices: filteredData.map((item) => item.originalIndex),
+  };
+}
+
 // Real report generator using genetic analysis results
 async function generateRealReport(
   sharedVariants: any[],
@@ -79,13 +120,29 @@ async function generateRealReport(
   let prsResults: PRSResult[] = [];
   try {
     const { prsConfigs, indexMap, allWeights } = await loadPRSData();
+
+    // Filter PRS configs based on user's sex
+    const { filteredConfigs, filteredIndices } = filterPRSConfigsBySex(
+      prsConfigs,
+      demographics.sexAtBirth
+    );
+
+    // Filter the weights array to match the filtered configs
+    const filteredWeights = filteredIndices.map((index) => allWeights[index]);
+
     prsResults = calculateAllPrs(
       parsedVariants,
       indexMap,
-      prsConfigs,
-      allWeights
+      filteredConfigs,
+      filteredWeights
     );
-    console.log(`Calculated ${prsResults.length} PRS scores`);
+
+    console.log(
+      `Calculated ${prsResults.length} PRS scores (filtered by sex: ${demographics.sexAtBirth || "not specified"})`
+    );
+    console.log(
+      `Original configs: ${prsConfigs.length}, Filtered configs: ${filteredConfigs.length}`
+    );
   } catch (error) {
     console.error("Failed to calculate PRS scores:", error);
     // Continue without PRS scores

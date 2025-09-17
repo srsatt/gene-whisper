@@ -431,3 +431,87 @@ textarea:focus {
     transform: rotate(calc(var(--initial-angle) + 360deg));
   }
 }
+
+/* Movement animations for background icons */
+.animate-float-gentle {
+  animation: float-gentle 8s ease-in-out infinite;
+  animation-fill-mode: both;
+}
+
+.animate-drift-horizontal {
+  animation: drift-horizontal 12s ease-in-out infinite;
+  animation-fill-mode: both;
+}
+
+.animate-drift-vertical {
+  animation: drift-vertical 10s ease-in-out infinite;
+  animation-fill-mode: both;
+}
+
+.animate-sway-circular {
+  animation: sway-circular 15s ease-in-out infinite;
+  animation-fill-mode: both;
+}
+
+.animate-pulse-scale {
+  animation: pulse-scale 6s ease-in-out infinite;
+  animation-fill-mode: both;
+}
+
+.animate-rotate-only {
+  /* Only rotation, no additional movement - uses only animate-spin-continuous */
+  animation-duration: 25s; /* Slower rotation for rotate-only icons */
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes drift-horizontal {
+  0%, 100% {
+    transform: translateX(0px);
+  }
+  50% {
+    transform: translateX(20px);
+  }
+}
+
+@keyframes drift-vertical {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(25px);
+  }
+}
+
+@keyframes sway-circular {
+  0%, 100% {
+    transform: translateX(0px) translateY(0px);
+  }
+  25% {
+    transform: translateX(10px) translateY(-8px);
+  }
+  50% {
+    transform: translateX(0px) translateY(-15px);
+  }
+  75% {
+    transform: translateX(-10px) translateY(-8px);
+  }
+}
+
+@keyframes pulse-scale {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}

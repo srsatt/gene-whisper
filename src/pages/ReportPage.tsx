@@ -37,7 +37,7 @@ export default function ReportPage({
             <div className="flex items-center space-x-3">
               <button
                 onClick={onBack}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+                className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
                 aria-label="Go back to upload"
               >
                 <svg

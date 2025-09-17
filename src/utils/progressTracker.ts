@@ -112,15 +112,8 @@ export class ProgressTracker {
     const totalSize = Array.from(this.fileSizes.values()).reduce((sum, size) => sum + size, 0);
     const totalLoaded = Array.from(this.loadedBytes.values()).reduce((sum, bytes) => sum + bytes, 0);
 
-    // Calculate weighted progress across all phases
-    let totalWeightedProgress = 0;
-    
-    for (const phase of this.phases) {
-      const phaseProgress = this.phaseProgress.get(phase.name) || 0;
-      totalWeightedProgress += phase.weight * phaseProgress;
-    }
-
-    const percentage = Math.min(Math.max((totalWeightedProgress / this.totalWeight) * 100, 0), 100);
+    // Simple percentage based on actual bytes downloaded vs total bytes
+    const percentage = totalSize > 0 ? Math.min(Math.max((totalLoaded / totalSize) * 100, 0), 100) : 0;
 
     // Find current file info for display
     let currentLoaded = 0;

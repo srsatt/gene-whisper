@@ -188,7 +188,7 @@ export default function ReportLayout({
   const [prsSectionExpanded, setPrsSectionExpanded] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(20);
-  const [prsVisibleCount, setPrsVisibleCount] = useState(10);
+  const [showNormalRisk, setShowNormalRisk] = useState(false);
 
   // Load UI preferences
   useEffect(() => {
@@ -246,8 +246,8 @@ export default function ReportLayout({
     setVisibleCount((prev) => prev + 20);
   };
 
-  const showMorePrs = () => {
-    setPrsVisibleCount((prev) => prev + 10);
+  const toggleNormalRisk = () => {
+    setShowNormalRisk((prev) => !prev);
   };
 
   const selectedMutation = selectedMutationId
@@ -318,9 +318,23 @@ export default function ReportLayout({
     return getRiskValue(b.risk) - getRiskValue(a.risk);
   });
 
-  // Get visible PRS results based on pagination
-  const visiblePrsResults = sortedPrsResults.slice(0, prsVisibleCount);
-  const hasMorePrs = prsVisibleCount < sortedPrsResults.length;
+  // Filter PRS results: always show high/low risk, show normal only if toggled
+  const highLowRiskResults = sortedPrsResults.filter((prs) => {
+    if (typeof prs.risk === "number") return false; // Skip raw scores for now
+    return prs.risk === "high" || prs.risk === "low";
+  });
+
+  const normalRiskResults = sortedPrsResults.filter((prs) => {
+    if (typeof prs.risk === "number") return true; // Include raw scores with normal
+    return prs.risk === "normal";
+  });
+
+  // Combine results based on toggle state
+  const visiblePrsResults = showNormalRisk
+    ? [...highLowRiskResults, ...normalRiskResults]
+    : highLowRiskResults;
+
+  const hasNormalRisk = normalRiskResults.length > 0;
 
   return (
     <div className="flex h-full">
@@ -335,7 +349,7 @@ export default function ReportLayout({
                 <button
                   onClick={togglePrsSection}
                   className={cn(
-                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm",
+                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm cursor-pointer",
                     prsSectionExpanded ? "rounded-t-lg" : "rounded-lg"
                   )}
                   style={{ outline: "none" }}
@@ -394,14 +408,15 @@ export default function ReportLayout({
                       </div>
                     </div>
 
-                    {hasMorePrs && (
+                    {hasNormalRisk && (
                       <div className="flex justify-center pt-6">
                         <button
-                          onClick={showMorePrs}
+                          onClick={toggleNormalRisk}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
-                          Show More ({sortedPrsResults.length - prsVisibleCount}{" "}
-                          remaining)
+                          {showNormalRisk
+                            ? `Collapse (${normalRiskResults.length} Normal Risk)`
+                            : `Expand (${normalRiskResults.length} Normal Risk)`}
                         </button>
                       </div>
                     )}
@@ -416,7 +431,7 @@ export default function ReportLayout({
                 <button
                   onClick={toggleSection}
                   className={cn(
-                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm",
+                    "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm cursor-pointer",
                     sectionExpanded ? "rounded-t-lg" : "rounded-lg"
                   )}
                   style={{ outline: "none" }}

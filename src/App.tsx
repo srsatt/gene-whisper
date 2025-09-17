@@ -242,16 +242,16 @@ async function generateRealReport(
     // Filter the weights array to match the filtered configs
     const filteredWeights = filteredIndices.map((index) => allWeights[index]);
 
-    if (completePhase) {
-      completePhase("Calculating PRS scores");
-    }
-
     prsResults = calculateAllPrs(
       parsedVariants,
       indexMap,
       filteredConfigs,
       filteredWeights
     );
+
+    if (completePhase) {
+      completePhase("Calculating PRS scores");
+    }
 
     console.log(
       `Calculated ${prsResults.length} PRS scores (filtered by sex: ${demographics.sexAtBirth || "not specified"})`
@@ -262,6 +262,10 @@ async function generateRealReport(
   } catch (error) {
     console.error("Failed to calculate PRS scores:", error);
     // Continue without PRS scores
+  }
+
+  if (completePhase) {
+    completePhase("Generating report");
   }
 
   return {
@@ -395,9 +399,6 @@ function OnlineStatus() {
         }`}
         aria-hidden="true"
       />
-      <span className="text-xs font-medium text-yellow-800">
-        {isOnline ? "Online" : "Offline"}
-      </span>
     </div>
   );
 }
@@ -467,7 +468,6 @@ function AppContent() {
         const loadedData = await loadAllData(fetchWithProgress, false);
 
         // Parse the uploaded file
-        completePhase("Parsing genome file");
         const fileContent = await state.uploadedFile!.text();
         const parsedVariants = parseGenomeFile(fileContent);
 
@@ -476,7 +476,6 @@ function AppContent() {
         );
 
         // Find shared variants between user genome and databases
-        completePhase("Finding shared variants");
         const sharedVariants = findSharedVariants(
           parsedVariants,
           loadedData.clinvarMap,
@@ -530,7 +529,6 @@ function AppContent() {
         }
 
         // Generate real report using genetic analysis results
-        completePhase("Generating report");
         const report = await generateRealReport(
           sharedVariants,
           state.demographics,
@@ -599,14 +597,12 @@ function AppContent() {
         dispatch({ type: "SET_FILE", file: demoFile });
 
         // Parse the demo file content
-        completePhase("Parsing genome file");
         const parsedVariants = parseGenomeFile(loadedData.demoFileContent!);
         console.log(
           `Parsed ${Object.keys(parsedVariants).length} variants from demo file`
         );
 
         // Find shared variants between user genome and databases
-        completePhase("Finding shared variants");
         const sharedVariants = findSharedVariants(
           parsedVariants,
           loadedData.clinvarMap,
@@ -660,7 +656,6 @@ function AppContent() {
         }
 
         // Generate real report using genetic analysis results
-        completePhase("Generating report");
         const report = await generateRealReport(
           sharedVariants,
           state.demographics,
@@ -844,9 +839,6 @@ function AppContent() {
               <p className="text-sm font-medium text-yellow-800">
                 {DISCLAIMER_TOP}
               </p>
-            </div>
-            <div className="flex items-center">
-              <OnlineStatus />
             </div>
           </div>
         </div>

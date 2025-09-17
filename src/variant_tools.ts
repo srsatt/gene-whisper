@@ -133,36 +133,99 @@ export async function loadClinvarDatabase(
 }
 
 /**
- * Loads and prepares SNPedia database from JSON file.
+ * Loads and prepares SNP data from JSON file.
  * @param fetchWithProgress Optional progress tracking fetch function
- * @returns A record mapping lowercase rsid to SNPedia variant objects
+ * @returns A record mapping lowercase rsid to SNP data variant objects
  */
-export async function loadSnpediaDatabase(
+export async function loadSnpDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
   const response = fetchWithProgress
-    ? await fetchWithProgress('/data_files/snpedia.json', 'Loading SNPedia database')
-    : await fetch('/data_files/snpedia.json');
+    ? await fetchWithProgress('/data_files/snp-data.json', 'Loading SNP data')
+    : await fetch('/data_files/snp-data.json');
   
-  const snpediaArray = await response.json();
+  const snpDataObject = await response.json();
 
-  const snpediaMap: Record<string, DatabaseVariant> = {};
+  const snpDataMap: Record<string, DatabaseVariant> = {};
 
-  for (const variant of snpediaArray) {
-    if (variant.rsid && variant.rsid.startsWith('rs')) {
-      snpediaMap[variant.rsid.toLowerCase()] = {
-        rsid: variant.rsid,
-        reference_allele: variant.reference_allele,
-        alternative_allele: variant.alternative_allele,
-        gene_name: variant.gene_name,
-        pmids: variant.pmids,
-        diseases: variant.diseases,
-        description: variant.description
+  for (const [rsidKey, snpData] of Object.entries(snpDataObject as Record<string, any>)) {
+    const rsid = rsidKey.toLowerCase();
+    if (rsid.startsWith('rs')) {
+      // Extract gene name, description, and allele info from templates and paragraphs
+      let gene_name = "";
+      let description = "";
+      let pmids: string[] = [];
+      let reference_allele = "";
+      let alternative_allele = "";
+      
+      // Look through sections for information
+      if (snpData.sections && Array.isArray(snpData.sections)) {
+        for (const section of snpData.sections) {
+          // Extract description from paragraphs
+          if (section.paragraphs && Array.isArray(section.paragraphs)) {
+            for (const paragraph of section.paragraphs) {
+              if (paragraph.sentences && Array.isArray(paragraph.sentences)) {
+                for (const sentence of paragraph.sentences) {
+                  if (sentence.text && description.length < 500) {
+                    description += (description ? " " : "") + sentence.text;
+                  }
+                }
+              }
+            }
+          }
+          
+          // Extract gene name, PMIDs, and allele info from templates
+          if (section.templates && Array.isArray(section.templates)) {
+            for (const template of section.templates) {
+              if (template.gene_s && !gene_name) {
+                gene_name = template.gene_s.split(',')[0]; // Take first gene if multiple
+              } else if (template.gene && !gene_name) {
+                gene_name = template.gene;
+              }
+              
+              if (template.pmid) {
+                pmids.push(template.pmid);
+              }
+
+              // Extract allele information from genotype fields
+              if (template.geno1 && template.geno2 && !reference_allele) {
+                // Parse genotypes like "(C;C)", "(C;T)", "(T;T)"
+                const geno1Match = template.geno1.match(/\(([ACGT]);([ACGT])\)/);
+                const geno2Match = template.geno2.match(/\(([ACGT]);([ACGT])\)/);
+                
+                if (geno1Match && geno2Match) {
+                  // geno1 is typically homozygous reference, geno2 is heterozygous
+                  const ref1 = geno1Match[1];
+                  const ref2 = geno1Match[2];
+                  const het1 = geno2Match[1];
+                  const het2 = geno2Match[2];
+                  
+                  // Reference allele is the one that appears in both positions of geno1
+                  if (ref1 === ref2) {
+                    reference_allele = ref1;
+                    // Alternative allele is the different one in geno2
+                    alternative_allele = (het1 === ref1) ? het2 : het1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      snpDataMap[rsid] = {
+        rsid: rsidKey,
+        reference_allele: reference_allele,
+        alternative_allele: alternative_allele,
+        gene_name: gene_name,
+        pmids: pmids.join(','),
+        diseases: "",
+        description: description.trim()
       };
     }
   }
 
-  return snpediaMap;
+  return snpDataMap;
 }
 
 /** Represents a variant from the ClinVar or SNPedia database. */
@@ -196,6 +259,8 @@ export interface ResultVariant extends DatabaseVariant {
   genotype: 1 | 2;
   /** The source database (clinvar or snpedia). */
   source: 'clinvar' | 'snpedia';
+  /** Enhanced SNP data for rendering (only available for snpedia source) */
+  snpData?: import('./snp-data-raw').SnpData;
 }
 
 // --- CORE LOGIC ---
@@ -297,6 +362,8 @@ export function findSharedVariants(
   snpediaMap: Record<string, DatabaseVariant>
 ): ResultVariant[] {
   const results: ResultVariant[] = [];
+  let snpediaChecked = 0;
+  let snpediaMatches = 0;
 
   for (const rsid in inputMap) {
     const inputVariant = inputMap[rsid];
@@ -313,12 +380,15 @@ export function findSharedVariants(
     // Check against SNPedia
     const snpediaVariant = snpediaMap[rsid];
     if (snpediaVariant) {
+      snpediaChecked++;
       const match = getMatchingVariant(inputVariant, snpediaVariant, 'snpedia');
       if (match) {
+        snpediaMatches++;
         results.push(match);
       }
     }
   }
+
 
   // Sort results: ClinVar first, then SNPedia
   // Within each source, sort by condition availability, then by rsid
@@ -356,9 +426,9 @@ export function findSharedVariants(
 export function convertToMutations(resultVariants: ResultVariant[]): any[] {
   return resultVariants
     .filter(variant => {
-      // Include variants that have either phenotype (ClinVar) or diseases (SNPedia)
+      // Include variants that have either phenotype (ClinVar) or diseases/description (SNPedia)
       const hasCondition = (variant.source === 'clinvar' && variant.phenotype) || 
-                          (variant.source === 'snpedia' && variant.diseases);
+                          (variant.source === 'snpedia' && (variant.diseases || variant.description));
       const hasGene = variant.gene_name && variant.gene_name.trim() !== '';
       return hasCondition && hasGene;
     })
@@ -366,11 +436,15 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
       rsid: variant.rsid,
       evidence_level: variant.evidence_level || '1 Star', // ClinVar has this, SNPedia defaults to 1 Star
       gene_name: variant.gene_name,
-      // Use phenotype for ClinVar, diseases for SNPedia
-      phenotype: variant.source === 'clinvar' ? variant.phenotype : variant.diseases,
+      // Use phenotype for ClinVar, diseases or description for SNPedia
+      phenotype: variant.source === 'clinvar' 
+        ? variant.phenotype 
+        : (variant.diseases || variant.description || 'Genetic variant'),
       chrom: variant.chrom?.toString() || 'Unknown',
       position: variant.position || 0,
       reference_allele: variant.reference_allele,
-      alternative_allele: variant.alternative_allele
+      alternative_allele: variant.alternative_allele,
+      source: variant.source,
+      snpData: variant.snpData // Include SnpData for enhanced rendering
     }));
 }

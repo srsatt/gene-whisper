@@ -32,7 +32,7 @@ import {
 // Interface for all loaded data
 interface LoadedData {
   clinvarMap: Record<string, any>;
-  snpediaMap: Record<string, any>;
+  snpDataMap: Record<string, any>;
   prsConfigs: any[];
   indexMap: Record<string, any>;
   allWeights: any[];
@@ -54,9 +54,9 @@ async function loadAllData(
       key: "clinvar",
     },
     {
-      url: "/data_files/snpedia.json",
-      phase: "Loading SNPedia database",
-      key: "snpedia",
+      url: "/data_files/snp-data.json",
+      phase: "Loading SNP data",
+      key: "snpData",
     },
     {
       url: "/data_files/prs_config.json",
@@ -110,13 +110,13 @@ async function loadAllData(
 
   // Process the data
   const clinvarArray = allData[0];
-  const snpediaArray = allData[1];
+  const snpDataObject = allData[1];
   const prsConfigs = allData[2];
   const indexMap = allData[3];
   const allWeights = allData[4];
   const demoFileContent = includeDemoFile ? allData[5] : undefined;
 
-  // Convert arrays to maps for ClinVar and SNPedia
+  // Convert arrays to maps for ClinVar
   const clinvarMap: Record<string, any> = {};
   for (const variant of clinvarArray) {
     if (variant.rsid && variant.rsid.startsWith("rs")) {
@@ -133,30 +133,103 @@ async function loadAllData(
     }
   }
 
-  const snpediaMap: Record<string, any> = {};
-  for (const variant of snpediaArray) {
-    if (variant.rsid && variant.rsid.startsWith("rs")) {
-      snpediaMap[variant.rsid.toLowerCase()] = {
-        rsid: variant.rsid,
-        reference_allele: variant.reference_allele,
-        alternative_allele: variant.alternative_allele,
-        gene_name: variant.gene_name,
-        pmids: variant.pmids,
-        diseases: variant.diseases,
-        description: variant.description,
+  // Process snp-data.json structure - it's already a map with RSIDs as keys
+  const snpDataMap: Record<string, any> = {};
+  for (const [rsidKey, snpData] of Object.entries(
+    snpDataObject as Record<string, any>
+  )) {
+    // Extract RSID from the key (e.g., "Rs997509" -> "rs997509")
+    const rsid = rsidKey.toLowerCase();
+    if (rsid.startsWith("rs")) {
+      // Extract gene name, description, and allele info from templates and paragraphs
+      let gene_name = "";
+      let description = "";
+      let pmids: string[] = [];
+      let reference_allele = "";
+      let alternative_allele = "";
+
+      // Look through sections for information
+      if (snpData.sections && Array.isArray(snpData.sections)) {
+        for (const section of snpData.sections) {
+          // Extract description from paragraphs
+          if (section.paragraphs && Array.isArray(section.paragraphs)) {
+            for (const paragraph of section.paragraphs) {
+              if (paragraph.sentences && Array.isArray(paragraph.sentences)) {
+                for (const sentence of paragraph.sentences) {
+                  if (sentence.text && description.length < 500) {
+                    description += (description ? " " : "") + sentence.text;
+                  }
+                }
+              }
+            }
+          }
+
+          // Extract gene name, PMIDs, and allele info from templates
+          if (section.templates && Array.isArray(section.templates)) {
+            for (const template of section.templates) {
+              if (template.gene_s && !gene_name) {
+                gene_name = template.gene_s.split(",")[0]; // Take first gene if multiple
+              } else if (template.gene && !gene_name) {
+                gene_name = template.gene;
+              }
+
+              if (template.pmid) {
+                pmids.push(template.pmid);
+              }
+
+              // Extract allele information from genotype fields
+              if (template.geno1 && template.geno2 && !reference_allele) {
+                // Parse genotypes like "(C;C)", "(C;T)", "(T;T)"
+                const geno1Match = template.geno1.match(
+                  /\(([ACGT]);([ACGT])\)/
+                );
+                const geno2Match = template.geno2.match(
+                  /\(([ACGT]);([ACGT])\)/
+                );
+
+                if (geno1Match && geno2Match) {
+                  // geno1 is typically homozygous reference, geno2 is heterozygous
+                  const ref1 = geno1Match[1];
+                  const ref2 = geno1Match[2];
+                  const het1 = geno2Match[1];
+                  const het2 = geno2Match[2];
+
+                  // Reference allele is the one that appears in both positions of geno1
+                  if (ref1 === ref2) {
+                    reference_allele = ref1;
+                    // Alternative allele is the different one in geno2
+                    alternative_allele = het1 === ref1 ? het2 : het1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      snpDataMap[rsid] = {
+        rsid: rsidKey, // Keep original casing for display
+        reference_allele: reference_allele,
+        alternative_allele: alternative_allele,
+        gene_name: gene_name,
+        pmids: pmids.join(","),
+        diseases: "", // Will be extracted from description
+        description: description.trim(),
+        source: "snpedia", // Add source field as requested
+        snpData: snpData, // Keep full SnpData for rendering
       };
     }
   }
 
   console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
-  console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
+  console.log(`Loaded ${Object.keys(snpDataMap).length} SNP data variants`);
   console.log(`Loaded ${prsConfigs.length} PRS configurations`);
   console.log(`Loaded index map with ${Object.keys(indexMap).length} variants`);
   console.log(`Loaded weights for ${allWeights.length} PRS models`);
 
   return {
     clinvarMap,
-    snpediaMap,
+    snpDataMap,
     prsConfigs,
     indexMap,
     allWeights,
@@ -369,40 +442,6 @@ export function useAppContext() {
 }
 
 // Hook to detect online/offline status
-function useOnlineStatus() {
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  return isOnline;
-}
-
-// Online status component
-function OnlineStatus() {
-  const isOnline = useOnlineStatus();
-
-  return (
-    <div className="flex items-center space-x-1">
-      <div
-        className={`w-2 h-2 rounded-full ${
-          isOnline ? "bg-green-500" : "bg-red-500"
-        }`}
-        aria-hidden="true"
-      />
-    </div>
-  );
-}
 
 // Main App component
 function AppContent() {
@@ -471,10 +510,10 @@ function AppContent() {
 
         // Parse the uploaded file
         const fileContent = await state.uploadedFile!.text();
-        
+
         // --- CHANGED: Conditional parsing logic ---
         let parsedVariants: Record<string, any>;
-        const fileName = state.uploadedFile.name.toLowerCase();
+        const fileName = state.uploadedFile!.name.toLowerCase();
 
         if (fileName.endsWith(".csv")) {
           console.log("Parsing as MyHeritage file (.csv)");
@@ -496,7 +535,7 @@ function AppContent() {
         const sharedVariants = findSharedVariants(
           parsedVariants,
           loadedData.clinvarMap,
-          loadedData.snpediaMap
+          loadedData.snpDataMap
         );
 
         console.log(
@@ -623,7 +662,7 @@ function AppContent() {
         const sharedVariants = findSharedVariants(
           parsedVariants,
           loadedData.clinvarMap,
-          loadedData.snpediaMap
+          loadedData.snpDataMap
         );
 
         console.log(

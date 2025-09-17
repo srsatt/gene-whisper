@@ -33,6 +33,18 @@ interface PRSCardProps {
 }
 
 function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
+  // Render enhanced card if we have SnpData
+  if (mutation.snpData && mutation.source === "snpedia") {
+    return (
+      <EnhancedMutationCard
+        mutation={mutation}
+        onDiscuss={onDiscuss}
+        isSelected={isSelected}
+      />
+    );
+  }
+
+  // Fallback to original card for ClinVar data
   return (
     <div
       className={cn(
@@ -49,34 +61,147 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
               href={`https://www.snpedia.com/index.php/${mutation.rsid}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors"
+              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors lowercase"
             >
               {mutation.rsid}
             </a>
             <span className="text-sm font-medium text-gray-900">
               {mutation.gene_name}
             </span>
-            <span
-              className={cn(
-                "px-2 py-1 text-xs rounded font-medium",
-                mutation.evidence_level === "4 Stars"
-                  ? "bg-green-100 text-green-800"
-                  : mutation.evidence_level === "3 Stars"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-gray-100 text-gray-700"
-              )}
-            >
-              {mutation.evidence_level === "4 Stars"
-                ? "Scientifically Proven"
-                : mutation.evidence_level === "3 Stars"
-                  ? "Moderate"
-                  : "Tentative"}
-            </span>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
             {mutation.phenotype}
           </p>
         </div>
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
+          <button
+            onClick={() => onDiscuss(mutation.rsid)}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Discuss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EnhancedMutationCard({
+  mutation,
+  onDiscuss,
+  isSelected,
+}: MutationCardProps) {
+  const snpData = mutation.snpData!;
+
+  // Extract links from templates (PMIDs with titles)
+  const links: Array<{ pmid: string; title: string }> = [];
+  const lists: string[] = [];
+
+  if (snpData.sections) {
+    for (const section of snpData.sections) {
+      // Extract PMID links from templates
+      if (section.templates) {
+        for (const template of section.templates) {
+          if (template.pmid && template.title) {
+            links.push({ pmid: template.pmid, title: template.title });
+          }
+        }
+      }
+
+      // Extract list items
+      if (section.lists) {
+        for (const listGroup of section.lists) {
+          for (const listItem of listGroup) {
+            if (listItem.text) {
+              lists.push(listItem.text);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        "bg-white rounded-lg border p-4 transition-all group",
+        isSelected
+          ? "border-blue-500 shadow-md"
+          : "border-gray-200 hover:border-gray-300"
+      )}
+    >
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <a
+              href={`https://www.snpedia.com/index.php/${mutation.rsid}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors lowercase"
+            >
+              {mutation.rsid}
+            </a>
+            <span className="text-sm font-medium text-gray-900">
+              {mutation.gene_name}
+            </span>
+          </div>
+
+          {/* Description from paragraphs */}
+          {mutation.phenotype && (
+            <p className="text-sm text-gray-600 leading-relaxed mb-3">
+              {mutation.phenotype}
+            </p>
+          )}
+
+          {/* Links section */}
+          {links.length > 0 && (
+            <div className="mb-3">
+              <h4 className="text-xs font-medium text-gray-700 mb-2">
+                Research Papers:
+              </h4>
+              <div className="space-y-1">
+                {links.slice(0, 2).map((link, index) => (
+                  <a
+                    key={index}
+                    href={`https://pubmed.ncbi.nlm.nih.gov/${link.pmid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    {link.title}
+                  </a>
+                ))}
+                {links.length > 2 && (
+                  <span className="text-xs text-gray-500">
+                    +{links.length - 2} more papers
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Lists section */}
+          {lists.length > 0 && (
+            <div className="mb-2">
+              <h4 className="text-xs font-medium text-gray-700 mb-1">
+                Additional Info:
+              </h4>
+              <div className="text-xs text-gray-600">
+                {lists.slice(0, 3).map((item, index) => (
+                  <div key={index} className="truncate">
+                    • {item}
+                  </div>
+                ))}
+                {lists.length > 3 && (
+                  <div className="text-gray-500">
+                    +{lists.length - 3} more items
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
           <button
             onClick={() => onDiscuss(mutation.rsid)}
@@ -236,7 +361,7 @@ export default function ReportLayout({
     setPrsSectionExpanded((prev) => {
       // Reset visible count when expanding section
       if (!prev) {
-        setPrsVisibleCount(10);
+        setVisibleCount(20);
       }
       return !prev;
     });

@@ -14,6 +14,8 @@ export interface Mutation {
   position: number;
   reference_allele: string;
   alternative_allele: string;
+  source?: string;
+  snpData?: import('./snp-data-raw').SnpData; // Enhanced data for rendering
 }
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';

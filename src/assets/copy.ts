@@ -24,13 +24,13 @@ export const PROMPTS = [
 ];
 
 export const EVIDENCE_MAP = {
-  A: "Scientifically Supported",
+  A: "Scientifically Proven",
   B: "Moderate", 
   C: "Tentative"
 };
 
 export const STAR_RATING_MAP = {
-  "4 Stars": "Scientifically Supported",
+  "4 Stars": "Scientifically Proven",
   "3 Stars": "Moderate",
   "1 Star": "Tentative"
 };

@@ -25,7 +25,7 @@ export default function FileDropzone({
 
       const files = Array.from(e.dataTransfer.files);
       const validFile = files.find(
-        (file) => file.name.endsWith(".txt") || file.name.endsWith(".vcf")
+        (file) => file.name.endsWith(".txt") || file.name.endsWith(".vcf") || file.name.endsWith(".csv")
       );
 
       if (validFile) {

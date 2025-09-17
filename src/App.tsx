@@ -11,6 +11,7 @@ import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
 import {
   parseGenomeFile,
+  parseMyHeritageFile, // CHANGED: Import the new parser
   findSharedVariants,
   convertToMutations,
 } from "./variant_tools";
@@ -409,7 +410,8 @@ function AppContent() {
 
   // File validation
   const validateFile = (file: File): boolean => {
-    const validExtensions = [".txt", ".vcf"];
+    // CHANGED: Added .csv to the list of valid extensions
+    const validExtensions = [".txt", ".vcf", ".csv"];
     const hasValidExtension = validExtensions.some((ext) =>
       file.name.toLowerCase().endsWith(ext)
     );
@@ -469,7 +471,22 @@ function AppContent() {
 
         // Parse the uploaded file
         const fileContent = await state.uploadedFile!.text();
-        const parsedVariants = parseGenomeFile(fileContent);
+        
+        // --- CHANGED: Conditional parsing logic ---
+        let parsedVariants: Record<string, any>;
+        const fileName = state.uploadedFile.name.toLowerCase();
+
+        if (fileName.endsWith(".csv")) {
+          console.log("Parsing as MyHeritage file (.csv)");
+          parsedVariants = parseMyHeritageFile(fileContent);
+        } else if (fileName.endsWith(".txt")) {
+          console.log("Parsing as 23andMe file (.txt)");
+          parsedVariants = parseGenomeFile(fileContent);
+        } else {
+          // This case is a fallback, validateFile should prevent this
+          throw new Error("Unsupported file type provided.");
+        }
+        // --- END OF CHANGES ---
 
         console.log(
           `Parsed ${Object.keys(parsedVariants).length} variants from file`

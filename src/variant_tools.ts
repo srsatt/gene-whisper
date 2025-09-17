@@ -53,6 +53,49 @@ export function parseGenomeFile(fileContent: string): Record<string, InputVarian
   return variants;
 }
 
+
+/**
+ * Parses a MyHeritage-style text file and converts it to a map of InputVariant objects.
+ * @param fileContent The raw text content of the uploaded file.
+ * @returns A record mapping a lowercase rsid to its InputVariant object.
+ */
+export function parseMyHeritageFile(fileContent: string): Record<string, InputVariant> {
+  const lines = fileContent.split('\n');
+  const variants: Record<string, InputVariant> = {};
+
+  for (const line of lines) {
+    // Skip comment lines (usually starting with '#') and empty lines
+    if (line.startsWith('#') || line.trim() === '' || line.startsWith('RSID')) {
+      continue;
+    }
+
+    // MyHeritage format: "rsid","chromosome","position","genotype"
+    // 1. Split the line by commas.
+    // 2. Map over each part to remove the surrounding double quotes.
+    const columns = line.trim().split(',').map(col => col.replace(/"/g, ''));
+
+    // Expect 4 columns: rsid, chromosome, position, genotype
+    if (columns.length >= 4) {
+      const [rsid, chromosome, position, genotype] = columns;
+
+      // Validate that the rsid looks correct
+      if (rsid.startsWith('rs')) {
+        const variant: InputVariant = {
+          rsid,
+          chromosome,
+          position: parseInt(position, 10),
+          genotype
+        };
+
+        // Use lowercase rsid as the key for case-insensitive matching
+        variants[rsid.toLowerCase()] = variant;
+      }
+    }
+  }
+
+  return variants;
+}
+
 // --- DATABASE LOADING ---
 
 /**

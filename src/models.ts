@@ -1,5 +1,4 @@
 import {env} from '@xenova/transformers'
-import { getWebLlmEngine, type WebLlmConfig } from './weblm'
 import type { MLCEngineInterface } from '@mlc-ai/web-llm'
 
 export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';

@@ -20,6 +20,8 @@ import ReportPage from "./pages/ReportPage";
 import DNABackground from "./components/DNABackground";
 import PrivacyToast from "./components/PrivacyToast";
 import SystemRequirementsToast from "./components/SystemRequirementsToast";
+import MobileErrorScreen from "./components/MobileErrorScreen";
+import { useIsMobile } from "./utils/device";
 
 // Mock report generator
 async function generateReportMock(demographics: Demographics): Promise<Report> {
@@ -741,6 +743,13 @@ function AppContent() {
 
 // App provider component
 function App() {
+  const isMobile = useIsMobile();
+
+  // Show mobile error screen if accessing from mobile device
+  if (isMobile) {
+    return <MobileErrorScreen />;
+  }
+
   const initialState: AppState = {
     phase: "upload",
     demographics: getDemographics(),

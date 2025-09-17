@@ -58,7 +58,7 @@ export class CustomWebLLM implements LanguageModelV2 {
     const otherMessages: Array<{ role: 'user' | 'assistant' | 'tool'; content: string; tool_call_id?: string }> = []
 
     for (const msg of promptMessages) {
-      if (msg.role === 'system') {
+      if (msg.role === 'system' || (msg as any).role === 'context') {
         if (typeof msg.content === 'string') {
           systemParts.push(msg.content)
         }
@@ -182,9 +182,9 @@ export class CustomWebLLM implements LanguageModelV2 {
         let fullText = ""
         const textId = "text-0"
         const toolCallId = "tool-0"
-        
+
         controller.enqueue({ type: "stream-start", warnings: [] })
-        
+
         try {
           for await (const chunk of response) {
             if (abortSignal?.aborted) {
@@ -195,7 +195,7 @@ export class CustomWebLLM implements LanguageModelV2 {
             const delta = chunk?.choices?.[0]?.delta?.content ?? ""
             if (delta) {
               fullText += delta
-              
+
               // Detect a JSON tool call like {"tool":"name","input":{...}}
               if (webllmTools && webllmTools.length > 0) {
                 const startIdx = fullText.indexOf('{"tool"')
@@ -238,11 +238,11 @@ export class CustomWebLLM implements LanguageModelV2 {
               }
             }
           }
-          
+
           controller.enqueue({ type: "text-end", id: textId })
-          
-          controller.enqueue({ 
-            type: "finish", 
+
+          controller.enqueue({
+            type: "finish",
             finishReason: "stop",
             usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
           })

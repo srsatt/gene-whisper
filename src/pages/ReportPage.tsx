@@ -58,8 +58,8 @@ export default function ReportPage({
                   Your Genetic Report
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {report.mutations.length} mutations • Generated{" "}
-                  {report.generatedAt.toLocaleDateString()}
+                  {report.mutations.length} mutations | Generated{" "}
+                  {report.generatedAt.toLocaleDateString().replace(/\//g, ".")}
                 </p>
               </div>
             </div>

@@ -79,7 +79,8 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
 
 const SECTION_CONFIG = {
   title: "Monogenic Score",
-  description: "All genetic variants and associated traits from your analysis",
+  description:
+    "Single-gene variants with clinical significance and associated health conditions",
   color: "blue",
 } as const;
 
@@ -170,14 +171,6 @@ export default function ReportLayout({
                     </h2>
                     <p className="text-sm text-gray-600">
                       {SECTION_CONFIG.description}
-                      {allMutations.length > 20 && (
-                        <span className="text-gray-500">
-                          {" "}
-                          • Showing{" "}
-                          {Math.min(visibleCount, allMutations.length)} of{" "}
-                          {allMutations.length}
-                        </span>
-                      )}
                     </p>
                   </div>
                   <svg

@@ -2,7 +2,7 @@
 
 export const DISCLAIMER_TOP = "This is not medical advice. Always consult your physician.";
 
-export const UPLOAD_HELPER = "Supported files: 23andMe, Ancestry, MyHeritage";
+export const UPLOAD_HELPER = "Supported file: 23andMe";
 
 export const START_HELPER = "Processing takes about ~1 minute.";
 

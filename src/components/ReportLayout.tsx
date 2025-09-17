@@ -1,13 +1,13 @@
 // src/components/ReportLayout.tsx
 
-import React, { useState, useEffect } from 'react';
-import type { Report, Finding, EvidenceLevel, ChatMessage } from '../models';
-import { EVIDENCE_MAP } from '../assets/copy';
-import { adjustRiskScore, formatAbsoluteRisk, cn } from '../tools';
-import { saveUIPreferences, getUIPreferences } from '../db';
-import RiskMeter from './RiskMeter';
-import WhatIfControls from './WhatIfControls';
-import ChatSidebar from './ChatSidebar';
+import React, { useState, useEffect } from "react";
+import type { Report, Finding, EvidenceLevel, ChatMessage } from "../models";
+import { EVIDENCE_MAP } from "../assets/copy";
+import { adjustRiskScore, formatAbsoluteRisk, cn } from "../tools";
+import { saveUIPreferences, getUIPreferences } from "../db";
+import RiskMeter from "./RiskMeter";
+import WhatIfControls from "./WhatIfControls";
+import ChatSidebar from "./ChatSidebar";
 
 interface ReportLayoutProps {
   report: Report;
@@ -20,20 +20,27 @@ interface ReportLayoutProps {
 
 interface FindingCardProps {
   finding: Finding;
-  demographics?: Report['demographics'];
+  demographics?: Report["demographics"];
   onDiscuss: (findingId: string) => void;
   isSelected: boolean;
 }
 
-function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCardProps) {
-  const [whatIfValues, setWhatIfValues] = useState<Record<string, number | boolean>>({});
+function FindingCard({
+  finding,
+  demographics,
+  onDiscuss,
+  isSelected,
+}: FindingCardProps) {
+  const [whatIfValues, setWhatIfValues] = useState<
+    Record<string, number | boolean>
+  >({});
   const [showActions, setShowActions] = useState(false);
 
   // Initialize what-if values
   useEffect(() => {
     const initialValues: Record<string, number | boolean> = {};
-    finding.whatIf.forEach(whatIf => {
-      if (whatIf.type === 'toggle') {
+    finding.whatIf.forEach((whatIf) => {
+      if (whatIf.type === "toggle") {
         initialValues[whatIf.id] = Boolean(whatIf.currentValue);
       } else {
         initialValues[whatIf.id] = Number(whatIf.currentValue);
@@ -42,37 +49,44 @@ function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCa
     setWhatIfValues(initialValues);
   }, [finding.whatIf]);
 
-  const adjustedRiskScore = adjustRiskScore(finding.baseRiskScore, whatIfValues);
+  const adjustedRiskScore = adjustRiskScore(
+    finding.baseRiskScore,
+    whatIfValues
+  );
 
   return (
-    <div className={cn(
-      "bg-white rounded-lg border p-6 transition-all",
-      isSelected ? "border-blue-500 shadow-md" : "border-gray-200 hover:border-gray-300"
-    )}>
+    <div
+      className={cn(
+        "bg-white rounded-lg border p-6 transition-all",
+        isSelected
+          ? "border-blue-500 shadow-md"
+          : "border-gray-200 hover:border-gray-300"
+      )}
+    >
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             {finding.title}
           </h3>
-          <p className="text-sm text-gray-600 mb-3">
-            {finding.summary}
-          </p>
+          <p className="text-sm text-gray-600 mb-3">{finding.summary}</p>
         </div>
-        
+
         <div className="flex flex-col items-end space-y-2">
-          <div className={cn(
-            "px-3 py-1 rounded-full text-sm font-medium",
-            finding.riskLevel === 'High' 
-              ? "bg-red-100 text-red-800"
-              : finding.riskLevel === 'Moderate'
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-green-100 text-green-800"
-          )}>
+          <div
+            className={cn(
+              "px-3 py-1 rounded-full text-sm font-medium",
+              finding.riskLevel === "High"
+                ? "bg-red-100 text-red-800"
+                : finding.riskLevel === "Moderate"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-green-100 text-green-800"
+            )}
+          >
             {finding.riskLevel}
           </div>
-          
-          <div 
+
+          <div
             className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium cursor-help"
             title={`Evidence level: ${EVIDENCE_MAP[finding.evidenceLevel]}`}
           >
@@ -83,8 +97,11 @@ function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCa
 
       {/* rsIDs */}
       <div className="flex flex-wrap gap-1 mb-4">
-        {finding.rsIds.map(rsId => (
-          <span key={rsId} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">
+        {finding.rsIds.map((rsId) => (
+          <span
+            key={rsId}
+            className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono"
+          >
             {rsId}
           </span>
         ))}
@@ -92,9 +109,7 @@ function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCa
 
       {/* Absolute risk */}
       {finding.absoluteRisk && (
-        <p className="text-sm text-gray-600 mb-4">
-          {finding.absoluteRisk}
-        </p>
+        <p className="text-sm text-gray-600 mb-4">{finding.absoluteRisk}</p>
       )}
 
       {/* Risk meter */}
@@ -124,38 +139,46 @@ function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCa
             className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
           >
             <span>Top actions</span>
-            <svg 
-              className={cn("w-4 h-4 ml-1 transition-transform", showActions && "rotate-180")}
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className={cn(
+                "w-4 h-4 ml-1 transition-transform",
+                showActions && "rotate-180"
+              )}
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
-          
+
           {showActions && (
             <div className="mt-2 space-y-2">
-              {finding.actions.slice(0, 3).map(action => (
+              {finding.actions.slice(0, 3).map((action) => (
                 <div key={action.id} className="p-3 bg-gray-50 rounded-md">
                   <div className="flex justify-between items-start mb-1">
                     <h4 className="text-sm font-medium text-gray-900">
                       {action.title}
                     </h4>
-                    <span className={cn(
-                      "px-2 py-1 text-xs rounded-full",
-                      action.evidenceLevel === 'A' 
-                        ? "bg-green-100 text-green-800"
-                        : action.evidenceLevel === 'B'
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-gray-100 text-gray-800"
-                    )}>
+                    <span
+                      className={cn(
+                        "px-2 py-1 text-xs rounded-full",
+                        action.evidenceLevel === "A"
+                          ? "bg-green-100 text-green-800"
+                          : action.evidenceLevel === "B"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-gray-100 text-gray-800"
+                      )}
+                    >
                       {action.evidenceLevel}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600">
-                    {action.description}
-                  </p>
+                  <p className="text-xs text-gray-600">{action.description}</p>
                 </div>
               ))}
             </div>
@@ -176,18 +199,20 @@ function FindingCard({ finding, demographics, onDiscuss, isSelected }: FindingCa
   );
 }
 
-export default function ReportLayout({ 
-  report, 
-  selectedFindingId, 
-  chatMessages, 
-  onDiscuss, 
+export default function ReportLayout({
+  report,
+  selectedFindingId,
+  chatMessages,
+  onDiscuss,
   onSendMessage,
-  isMobile = false 
+  isMobile = false,
 }: ReportLayoutProps) {
-  const [evidenceExpanded, setEvidenceExpanded] = useState<Record<EvidenceLevel, boolean>>({
+  const [evidenceExpanded, setEvidenceExpanded] = useState<
+    Record<EvidenceLevel, boolean>
+  >({
     A: true,
     B: true,
-    C: false
+    C: false,
   });
   const [chatOpen, setChatOpen] = useState(false);
 
@@ -204,27 +229,32 @@ export default function ReportLayout({
   }, [evidenceExpanded, chatOpen]);
 
   const toggleEvidenceLevel = (level: EvidenceLevel) => {
-    setEvidenceExpanded(prev => ({
+    setEvidenceExpanded((prev) => ({
       ...prev,
-      [level]: !prev[level]
+      [level]: !prev[level],
     }));
   };
 
-  const selectedFinding = selectedFindingId 
-    ? report.findings.find(f => f.id === selectedFindingId)
+  const selectedFinding = selectedFindingId
+    ? report.findings.find((f) => f.id === selectedFindingId)
     : undefined;
 
   // Group findings by evidence level
-  const findingsByEvidence = report.findings.reduce((acc, finding) => {
-    if (!acc[finding.evidenceLevel]) {
-      acc[finding.evidenceLevel] = [];
-    }
-    acc[finding.evidenceLevel].push(finding);
-    return acc;
-  }, {} as Record<EvidenceLevel, Finding[]>);
+  const findingsByEvidence = report.findings.reduce(
+    (acc, finding) => {
+      if (!acc[finding.evidenceLevel]) {
+        acc[finding.evidenceLevel] = [];
+      }
+      acc[finding.evidenceLevel].push(finding);
+      return acc;
+    },
+    {} as Record<EvidenceLevel, Finding[]>
+  );
 
   // High-risk findings for proactive advice
-  const highRiskFindings = report.findings.filter(f => f.riskLevel === 'High');
+  const highRiskFindings = report.findings.filter(
+    (f) => f.riskLevel === "High"
+  );
 
   if (isMobile) {
     return (
@@ -249,8 +279,16 @@ export default function ReportLayout({
           <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5 text-amber-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="flex-1">
@@ -258,8 +296,9 @@ export default function ReportLayout({
                   Personalized Tips
                 </h3>
                 <p className="text-xs text-amber-700 mt-1">
-                  You have {highRiskFindings.length} high-risk finding{highRiskFindings.length > 1 ? 's' : ''}. 
-                  Consider discussing these with your healthcare provider.
+                  You have {highRiskFindings.length} high-risk finding
+                  {highRiskFindings.length > 1 ? "s" : ""}. Consider discussing
+                  these with your healthcare provider.
                 </p>
               </div>
             </div>
@@ -268,7 +307,7 @@ export default function ReportLayout({
 
         {/* Evidence groups */}
         <div className="px-4 py-4 space-y-4">
-          {(['A', 'B', 'C'] as EvidenceLevel[]).map(level => {
+          {(["A", "B", "C"] as EvidenceLevel[]).map((level) => {
             const findings = findingsByEvidence[level] || [];
             if (findings.length === 0) return null;
 
@@ -281,19 +320,27 @@ export default function ReportLayout({
                   <h2 className="text-lg font-semibold text-gray-900">
                     {EVIDENCE_MAP[level]} ({findings.length})
                   </h2>
-                  <svg 
-                    className={cn("w-5 h-5 transition-transform", evidenceExpanded[level] && "rotate-180")}
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className={cn(
+                      "w-5 h-5 transition-transform",
+                      evidenceExpanded[level] && "rotate-180"
+                    )}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
-                
+
                 {evidenceExpanded[level] && (
                   <div className="space-y-4">
-                    {findings.map(finding => (
+                    {findings.map((finding) => (
                       <FindingCard
                         key={finding.id}
                         finding={finding}
@@ -318,8 +365,18 @@ export default function ReportLayout({
           className="fixed bottom-4 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           aria-label="Open chat"
         >
-          <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg
+            className="w-6 h-6 mx-auto"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
         </button>
 
@@ -337,7 +394,7 @@ export default function ReportLayout({
   }
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full">
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-6">
@@ -361,8 +418,16 @@ export default function ReportLayout({
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
-                  <svg className="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <svg
+                    className="w-6 h-6 text-amber-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="flex-1">
@@ -370,11 +435,12 @@ export default function ReportLayout({
                     Personalized Tips
                   </h3>
                   <p className="text-sm text-amber-700 mt-1">
-                    You have {highRiskFindings.length} high-risk finding{highRiskFindings.length > 1 ? 's' : ''}. 
-                    Consider discussing these with your healthcare provider.
+                    You have {highRiskFindings.length} high-risk finding
+                    {highRiskFindings.length > 1 ? "s" : ""}. Consider
+                    discussing these with your healthcare provider.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {highRiskFindings.slice(0, 3).map(finding => (
+                    {highRiskFindings.slice(0, 3).map((finding) => (
                       <button
                         key={finding.id}
                         onClick={() => onDiscuss(finding.id)}
@@ -391,7 +457,7 @@ export default function ReportLayout({
 
           {/* Evidence groups */}
           <div className="space-y-6">
-            {(['A', 'B', 'C'] as EvidenceLevel[]).map(level => {
+            {(["A", "B", "C"] as EvidenceLevel[]).map((level) => {
               const findings = findingsByEvidence[level] || [];
               if (findings.length === 0) return null;
 
@@ -404,19 +470,27 @@ export default function ReportLayout({
                     <h2 className="text-xl font-semibold text-gray-900">
                       {EVIDENCE_MAP[level]} ({findings.length})
                     </h2>
-                    <svg 
-                      className={cn("w-6 h-6 transition-transform", evidenceExpanded[level] && "rotate-180")}
-                      fill="none" 
-                      stroke="currentColor" 
+                    <svg
+                      className={cn(
+                        "w-6 h-6 transition-transform",
+                        evidenceExpanded[level] && "rotate-180"
+                      )}
+                      fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
-                  
+
                   {evidenceExpanded[level] && (
                     <div className="grid gap-4">
-                      {findings.map(finding => (
+                      {findings.map((finding) => (
                         <FindingCard
                           key={finding.id}
                           finding={finding}

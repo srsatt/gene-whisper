@@ -35,7 +35,7 @@ export default function DemographicsForm({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Sex at Birth */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">

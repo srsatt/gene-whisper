@@ -12,10 +12,11 @@
     "lint": "biome check ."
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.11.6",
+    "@assistant-ui/react": "^0.11.8",
     "@assistant-ui/react-ai-sdk": "^1.1.0",
     "@assistant-ui/react-markdown": "^0.11.0",
     "@assistant-ui/styles": "^0.2.1",
+    "@built-in-ai/web-llm": "^0.2.2",
     "@mlc-ai/web-llm": "^0.2.79",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -33,6 +34,7 @@
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1",
     "remark-gfm": "^4.0.1",
     "vite-plugin-pwa": "^1.0.3",
     "zod": "^4.1.8"

@@ -128,7 +128,11 @@ export default function ReportLayout({
 
   // All mutations sorted by evidence level (4 Stars -> 3 Stars -> 1 Star)
   const allMutations = report.mutations.sort((a, b) => {
-    const evidenceOrder: Record<StarRating, number> = { "4 Stars": 0, "3 Stars": 1, "1 Star": 2 };
+    const evidenceOrder: Record<StarRating, number> = {
+      "4 Stars": 0,
+      "3 Stars": 1,
+      "1 Star": 2,
+    };
     return evidenceOrder[a.evidence_level] - evidenceOrder[b.evidence_level];
   });
 

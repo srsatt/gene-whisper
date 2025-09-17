@@ -45,10 +45,6 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
       </div>
 
       <div className="flex justify-between items-center">
-        <div className="text-xs text-gray-500">
-          Chr {mutation.chrom}:{mutation.position} ({mutation.reference_allele}→
-          {mutation.alternative_allele})
-        </div>
         <button
           onClick={() => onDiscuss(mutation.rsid)}
           className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"

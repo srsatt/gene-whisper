@@ -1,37 +1,59 @@
 // src/pages/ProcessingPage.tsx
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { LOADER_LINES, PROCESSING_SUB } from "../assets/copy";
+import type { ProgressInfo } from "../utils/progressTracker";
 
 interface ProcessingPageProps {
   onCancel: () => void;
   fileName?: string;
+  progressInfo?: ProgressInfo;
 }
 
 export default function ProcessingPage({
   onCancel,
   fileName,
+  progressInfo,
 }: ProcessingPageProps) {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [fallbackProgress, setFallbackProgress] = useState(0);
+
+  // Use real progress if available, otherwise fall back to artificial progress
+  const progress = progressInfo?.percentage ?? fallbackProgress;
+  const currentPhase = progressInfo?.phase ?? LOADER_LINES[currentLineIndex];
+
+  // Calculate which steps should be completed based on progress percentage
+  const getStepStatus = (stepIndex: number) => {
+    const stepThreshold = ((stepIndex + 1) / LOADER_LINES.length) * 100;
+    if (progress >= stepThreshold) return "completed";
+
+    // Current step is the one we're working on (within 10% range)
+    const prevThreshold = (stepIndex / LOADER_LINES.length) * 100;
+    if (progress > prevThreshold && progress < stepThreshold) return "current";
+
+    return "pending";
+  };
 
   useEffect(() => {
-    const lineInterval = setInterval(() => {
-      setCurrentLineIndex((prev) => (prev + 1) % LOADER_LINES.length);
-    }, 1500);
+    // Only use artificial progress if no real progress is available
+    if (!progressInfo) {
+      const lineInterval = setInterval(() => {
+        setCurrentLineIndex((prev) => (prev + 1) % LOADER_LINES.length);
+      }, 1500);
 
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return prev;
-        return prev + Math.random() * 3;
-      });
-    }, 200);
+      const progressInterval = setInterval(() => {
+        setFallbackProgress((prev) => {
+          if (prev >= 95) return prev;
+          return prev + Math.random() * 3;
+        });
+      }, 200);
 
-    return () => {
-      clearInterval(lineInterval);
-      clearInterval(progressInterval);
-    };
-  }, []);
+      return () => {
+        clearInterval(lineInterval);
+        clearInterval(progressInterval);
+      };
+    }
+  }, [progressInfo]);
 
   return (
     <div className="py-12">
@@ -71,8 +93,8 @@ export default function ProcessingPage({
           {/* Progress bar */}
           <div className="mb-6 mt-4">
             <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>{LOADER_LINES[currentLineIndex]}</span>
-              <span>{Math.round(progress)}%</span>
+              <span className="truncate pr-2">{currentPhase}</span>
+              <span className="flex-shrink-0">{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -80,6 +102,19 @@ export default function ProcessingPage({
                 style={{ width: `${progress}%` }}
               />
             </div>
+            {progressInfo && (
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>
+                  {progressInfo.totalSize > 0 &&
+                    `${(progressInfo.totalLoaded / 1024 / 1024).toFixed(1)}MB / ${(progressInfo.totalSize / 1024 / 1024).toFixed(1)}MB`}
+                </span>
+                {progressInfo.totalSize > 0 && (
+                  <span className="text-gray-400">
+                    Current: {(progressInfo.loaded / 1024 / 1024).toFixed(1)}MB
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Animated spinner */}
@@ -105,39 +140,42 @@ export default function ProcessingPage({
               Processing Steps:
             </h3>
             <div className="grid gap-1 text-xs text-gray-600">
-              {LOADER_LINES.map((line, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center space-x-2 py-1 px-2 rounded ${
-                    index === currentLineIndex
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : index < currentLineIndex
-                        ? "text-green-600"
-                        : "text-gray-500"
-                  }`}
-                >
-                  <div className="flex-shrink-0">
-                    {index < currentLineIndex ? (
-                      <svg
-                        className="w-3 h-3 text-green-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : index === currentLineIndex ? (
-                      <div className="w-3 h-3 border-2 border-blue-600 rounded-full animate-pulse"></div>
-                    ) : (
-                      <div className="w-3 h-3 border border-gray-300 rounded-full"></div>
-                    )}
+              {LOADER_LINES.map((line, index) => {
+                const stepStatus = getStepStatus(index);
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center space-x-2 py-1 px-2 rounded transition-all duration-300 ${
+                      stepStatus === "current"
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : stepStatus === "completed"
+                          ? "text-green-600 bg-green-50"
+                          : "text-gray-500"
+                    }`}
+                  >
+                    <div className="flex-shrink-0">
+                      {stepStatus === "completed" ? (
+                        <svg
+                          className="w-3 h-3 text-green-500"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : stepStatus === "current" ? (
+                        <div className="w-3 h-3 border-2 border-blue-600 rounded-full animate-pulse"></div>
+                      ) : (
+                        <div className="w-3 h-3 border border-gray-300 rounded-full"></div>
+                      )}
+                    </div>
+                    <span>{line}</span>
                   </div>
-                  <span>{line}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

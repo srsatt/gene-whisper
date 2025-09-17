@@ -25,15 +25,39 @@ import PrivacyToast from "./components/PrivacyToast";
 import SystemRequirementsToast from "./components/SystemRequirementsToast";
 import MobileErrorScreen from "./components/MobileErrorScreen";
 import { useIsMobile } from "./utils/device";
+import {
+  createProgressFetch,
+  type ProgressInfo,
+} from "./utils/progressTracker";
 
 // Load PRS data files
-async function loadPRSData() {
+async function loadPRSData(
+  fetchWithProgress?: (url: string, phase: string) => Promise<Response>
+) {
   console.log("Loading PRS data files...");
 
+  const configFetch = fetchWithProgress
+    ? fetchWithProgress(
+        "/data_files/prs_config.json",
+        "Loading PRS configurations"
+      )
+    : fetch("/data_files/prs_config.json");
+
+  const indexFetch = fetchWithProgress
+    ? fetchWithProgress(
+        "/data_files/prs_23andme_index_map.json",
+        "Loading PRS index map"
+      )
+    : fetch("/data_files/prs_23andme_index_map.json");
+
+  const weightsFetch = fetchWithProgress
+    ? fetchWithProgress("/data_files/prs_weights.json", "Loading PRS weights")
+    : fetch("/data_files/prs_weights.json");
+
   const [configResponse, indexResponse, weightsResponse] = await Promise.all([
-    fetch("/data_files/prs_config.json"),
-    fetch("/data_files/prs_23andme_index_map.json"),
-    fetch("/data_files/prs_weights.json"),
+    configFetch,
+    indexFetch,
+    weightsFetch,
   ]);
 
   if (!configResponse.ok || !indexResponse.ok || !weightsResponse.ok) {
@@ -98,7 +122,9 @@ function filterPRSConfigsBySex(
 async function generateRealReport(
   sharedVariants: any[],
   demographics: Demographics,
-  parsedVariants: Record<string, any>
+  parsedVariants: Record<string, any>,
+  fetchWithProgress?: (url: string, phase: string) => Promise<Response>,
+  completePhase?: (phase: string) => void
 ): Promise<Report> {
   // Convert shared variants to mutations format
   const mutations = convertToMutations(sharedVariants);
@@ -119,7 +145,8 @@ async function generateRealReport(
   // Calculate PRS scores
   let prsResults: PRSResult[] = [];
   try {
-    const { prsConfigs, indexMap, allWeights } = await loadPRSData();
+    const { prsConfigs, indexMap, allWeights } =
+      await loadPRSData(fetchWithProgress);
 
     // Filter PRS configs based on user's sex
     const { filteredConfigs, filteredIndices } = filterPRSConfigsBySex(
@@ -129,6 +156,10 @@ async function generateRealReport(
 
     // Filter the weights array to match the filtered configs
     const filteredWeights = filteredIndices.map((index) => allWeights[index]);
+
+    if (completePhase) {
+      completePhase("Calculating PRS scores");
+    }
 
     prsResults = calculateAllPrs(
       parsedVariants,
@@ -176,7 +207,8 @@ type AppAction =
   | { type: "SET_SELECTED_ITEM"; item?: SelectedItem }
   | { type: "ADD_CHAT_MESSAGE"; message: ChatMessage }
   | { type: "TOGGLE_SECTION_EXPANDED"; level: StarRating }
-  | { type: "SET_CHAT_OPEN"; open: boolean };
+  | { type: "SET_CHAT_OPEN"; open: boolean }
+  | { type: "SET_PROGRESS"; progress?: ProgressInfo };
 
 // Reducer
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -224,6 +256,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...state.uiPreferences,
           chatOpen: action.open,
         },
+      };
+
+    case "SET_PROGRESS":
+      return {
+        ...state,
+        progressInfo: action.progress,
       };
 
     default:
@@ -312,9 +350,32 @@ function AppContent() {
     if (!state.uploadedFile) return;
 
     dispatch({ type: "SET_PHASE", phase: "processing" });
+    dispatch({ type: "SET_PROGRESS", progress: undefined });
+
+    // Define processing phases with weights for progress calculation
+    const phases = [
+      { name: "Parsing genome file", weight: 5 },
+      { name: "Loading ClinVar database", weight: 40 },
+      { name: "Loading SNPedia database", weight: 20 },
+      { name: "Finding shared variants", weight: 10 },
+      { name: "Loading PRS configurations", weight: 10 },
+      { name: "Loading PRS index map", weight: 5 },
+      { name: "Loading PRS weights", weight: 5 },
+      { name: "Calculating PRS scores", weight: 3 },
+      { name: "Generating report", weight: 2 },
+    ];
+
+    // Create progress tracker
+    const { fetchWithProgress, completePhase } = createProgressFetch(
+      (progressInfo) => {
+        dispatch({ type: "SET_PROGRESS", progress: progressInfo });
+      },
+      phases
+    );
 
     try {
-      // Read and parse the uploaded file
+      // Parse the uploaded file
+      completePhase("Parsing genome file");
       const fileContent = await state.uploadedFile.text();
       const parsedVariants = parseGenomeFile(fileContent);
 
@@ -322,17 +383,18 @@ function AppContent() {
         `Parsed ${Object.keys(parsedVariants).length} variants from file`
       );
 
-      // Load database files
+      // Load database files with progress tracking
       console.log("Loading ClinVar and SNPedia databases...");
       const [clinvarMap, snpediaMap] = await Promise.all([
-        loadClinvarDatabase(),
-        loadSnpediaDatabase(),
+        loadClinvarDatabase(fetchWithProgress),
+        loadSnpediaDatabase(fetchWithProgress),
       ]);
 
       console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
       console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
 
       // Find shared variants between user genome and databases
+      completePhase("Finding shared variants");
       const sharedVariants = findSharedVariants(
         parsedVariants,
         clinvarMap,
@@ -386,25 +448,56 @@ function AppContent() {
       }
 
       // Generate real report using genetic analysis results
+      completePhase("Generating report");
       const report = await generateRealReport(
         sharedVariants,
         state.demographics,
-        parsedVariants
+        parsedVariants,
+        fetchWithProgress,
+        completePhase
       );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
     } catch (error) {
       console.error("Error generating report:", error);
       dispatch({ type: "SET_PHASE", phase: "upload" });
+      dispatch({ type: "SET_PROGRESS", progress: undefined });
       alert("An error occurred while processing your file. Please try again.");
     }
   };
 
   // Handle demo processing
   const handleDemo = async () => {
+    dispatch({ type: "SET_PROGRESS", progress: undefined });
+
+    // Define processing phases with weights for progress calculation
+    const phases = [
+      { name: "Loading demo file", weight: 5 },
+      { name: "Parsing genome file", weight: 5 },
+      { name: "Loading ClinVar database", weight: 40 },
+      { name: "Loading SNPedia database", weight: 20 },
+      { name: "Finding shared variants", weight: 10 },
+      { name: "Loading PRS configurations", weight: 10 },
+      { name: "Loading PRS index map", weight: 5 },
+      { name: "Loading PRS weights", weight: 5 },
+      { name: "Calculating PRS scores", weight: 3 },
+      { name: "Generating report", weight: 2 },
+    ];
+
+    // Create progress tracker
+    const { fetchWithProgress, completePhase } = createProgressFetch(
+      (progressInfo) => {
+        dispatch({ type: "SET_PROGRESS", progress: progressInfo });
+      },
+      phases
+    );
+
     try {
       // Fetch the demo file from public directory
-      const response = await fetch("/demo_genome.txt");
+      const response = await fetchWithProgress(
+        "/demo_genome.txt",
+        "Loading demo file"
+      );
       if (!response.ok) {
         throw new Error("Failed to load demo file");
       }
@@ -419,22 +512,24 @@ function AppContent() {
       dispatch({ type: "SET_PHASE", phase: "processing" });
 
       // Parse the demo file content
+      completePhase("Parsing genome file");
       const parsedVariants = parseGenomeFile(fileContent);
       console.log(
         `Parsed ${Object.keys(parsedVariants).length} variants from demo file`
       );
 
-      // Load database files
+      // Load database files with progress tracking
       console.log("Loading ClinVar and SNPedia databases...");
       const [clinvarMap, snpediaMap] = await Promise.all([
-        loadClinvarDatabase(),
-        loadSnpediaDatabase(),
+        loadClinvarDatabase(fetchWithProgress),
+        loadSnpediaDatabase(fetchWithProgress),
       ]);
 
       console.log(`Loaded ${Object.keys(clinvarMap).length} ClinVar variants`);
       console.log(`Loaded ${Object.keys(snpediaMap).length} SNPedia variants`);
 
       // Find shared variants between user genome and databases
+      completePhase("Finding shared variants");
       const sharedVariants = findSharedVariants(
         parsedVariants,
         clinvarMap,
@@ -488,15 +583,19 @@ function AppContent() {
       }
 
       // Generate real report using genetic analysis results
+      completePhase("Generating report");
       const report = await generateRealReport(
         sharedVariants,
         state.demographics,
-        parsedVariants
+        parsedVariants,
+        fetchWithProgress,
+        completePhase
       );
       saveReport(report);
       dispatch({ type: "SET_REPORT", report });
     } catch (error) {
       console.error("Error processing demo file:", error);
+      dispatch({ type: "SET_PROGRESS", progress: undefined });
       alert("An error occurred while loading the demo. Please try again.");
     }
   };
@@ -504,6 +603,7 @@ function AppContent() {
   // Handle cancel processing
   const handleCancelProcessing = () => {
     dispatch({ type: "SET_PHASE", phase: "upload" });
+    dispatch({ type: "SET_PROGRESS", progress: undefined });
   };
 
   // Handle back to upload
@@ -619,6 +719,7 @@ function AppContent() {
           <ProcessingPage
             onCancel={handleCancelProcessing}
             fileName={state.uploadedFile?.name}
+            progressInfo={state.progressInfo}
           />
         );
 

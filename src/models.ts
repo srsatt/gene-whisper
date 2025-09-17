@@ -70,6 +70,7 @@ export interface AppState {
   selectedMutationId?: string;
   selectedItem?: SelectedItem;
   chatMessages: ChatMessage[];
+  progressInfo?: import('./utils/progressTracker').ProgressInfo;
   uiPreferences: {
     sectionsExpanded: Record<StarRating | 'PRS', boolean>;
     chatOpen: boolean;

@@ -57,10 +57,16 @@ export function parseGenomeFile(fileContent: string): Record<string, InputVarian
 
 /**
  * Loads and prepares ClinVar database from JSON file.
+ * @param fetchWithProgress Optional progress tracking fetch function
  * @returns A record mapping lowercase rsid to ClinVar variant objects
  */
-export async function loadClinvarDatabase(): Promise<Record<string, DatabaseVariant>> {
-  const response = await fetch('/data_files/clinvar.json');
+export async function loadClinvarDatabase(
+  fetchWithProgress?: (url: string, phase: string) => Promise<Response>
+): Promise<Record<string, DatabaseVariant>> {
+  const response = fetchWithProgress 
+    ? await fetchWithProgress('/data_files/clinvar.json', 'Loading ClinVar database')
+    : await fetch('/data_files/clinvar.json');
+  
   const clinvarArray = await response.json();
 
   const clinvarMap: Record<string, DatabaseVariant> = {};
@@ -85,11 +91,16 @@ export async function loadClinvarDatabase(): Promise<Record<string, DatabaseVari
 
 /**
  * Loads and prepares SNPedia database from JSON file.
+ * @param fetchWithProgress Optional progress tracking fetch function
  * @returns A record mapping lowercase rsid to SNPedia variant objects
  */
-export async function loadSnpediaDatabase(): Promise<Record<string, DatabaseVariant>> {
-  // const response = await fetch('/data_files/snp-data.json');
-  const response = await fetch('/data_files/snpedia.json');
+export async function loadSnpediaDatabase(
+  fetchWithProgress?: (url: string, phase: string) => Promise<Response>
+): Promise<Record<string, DatabaseVariant>> {
+  const response = fetchWithProgress
+    ? await fetchWithProgress('/data_files/snpedia.json', 'Loading SNPedia database')
+    : await fetch('/data_files/snpedia.json');
+  
   const snpediaArray = await response.json();
 
   const snpediaMap: Record<string, DatabaseVariant> = {};

@@ -19,6 +19,7 @@ import { z } from "zod";
 import { CustomWebLLM } from "../llm/custom-web-llm";
 import type { Mutation } from "../models";
 import type { PRSResult } from "../prs";
+import { useAppContext } from "../App";
 
 // Define tools using AI SDK format
 const consoleLogTool = {
@@ -136,6 +137,7 @@ export function AssistantThreadWithTools({
 	const model = useMemo(() => new CustomWebLLM(), []);
 	const runtimeRef = useRef<ReturnType<typeof useLocalRuntime> | null>(null);
 	const currentContextRef = useRef<GeneticContext | null>(null);
+    const {state:{demographics}}= useAppContext()
 
 	const SdkToolAdapter: ChatModelAdapter = useMemo(
 		() => ({
@@ -186,6 +188,12 @@ Detailed information: ${context.data}
 
 When the user asks questions, they are likely referring to this ${context.type}. Use this information to provide relevant and specific answers.`;
 							}
+                            if (demographics) {
+                                systemPrompt += `\n\nDEMOGRAPHICS: The user's demographics are:
+                                ${JSON.stringify(demographics)}
+                                nb! weight and height are in kg and cm, respectively.
+                                consider them when answering questions.`;
+                            }
 
 							// Inject hidden context messages captured from the thread
 							if (hiddenContextTexts.length > 0) {
@@ -320,7 +328,7 @@ When the user asks questions, they are likely referring to this ${context.type}.
 				}
 			},
 		}),
-		[model],
+		[model, demographics],
 	);
 
 	const runtime = useLocalRuntime(SdkToolAdapter);

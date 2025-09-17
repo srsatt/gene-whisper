@@ -5,6 +5,33 @@ export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';
 
 export type EvidenceLevel = 'A' | 'B' | 'C';
 
+export type StarRating = '1 Star' | '3 Stars' | '4 Stars';
+
+export type ClinvarEvidenceLevel = '1 Star' | '3 Stars' | '4 Stars';
+
+export interface GeneticVariant {
+  rsid: string;
+  evidence_level: ClinvarEvidenceLevel;
+  gene_name: string;
+  phenotype: string;
+  chrom: string; // Can be converted to number
+  position: number;
+  reference_allele: string;
+  alternative_allele: string;
+}
+
+// Simplified variant structure matching variants.json
+export interface SimpleVariant {
+  rsid: string;
+  evidence_level: StarRating;
+  gene_name: string;
+  phenotype: string;
+  chrom: string;
+  position: number;
+  reference_allele: string;
+  alternative_allele: string;
+}
+
 export type RiskLevel = 'Low' | 'Moderate' | 'High';
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';
@@ -49,7 +76,7 @@ export interface Finding {
   id: string;
   title: string;
   summary: string;
-  rsIds: string[];
+  variants: GeneticVariant[];
   riskLevel: RiskLevel;
   evidenceLevel: EvidenceLevel;
   baseRiskScore: number; // 0-100
@@ -78,7 +105,7 @@ export interface ChatMessage {
     findingId: string;
     title: string;
     riskLevel: RiskLevel;
-    rsIds: string[];
+    variants: GeneticVariant[];
   };
 }
 

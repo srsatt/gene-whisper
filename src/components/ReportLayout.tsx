@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import type { Report, Finding, EvidenceLevel, ChatMessage } from "../models";
-import { EVIDENCE_MAP } from "../assets/copy";
+import { EVIDENCE_MAP, STAR_RATING_MAP } from "../assets/copy";
 import { adjustRiskScore, formatAbsoluteRisk, cn } from "../tools";
 import { saveUIPreferences, getUIPreferences } from "../db";
 import RiskMeter from "./RiskMeter";
@@ -70,40 +70,38 @@ function FindingCard({
           </h3>
           <p className="text-sm text-gray-600 mb-3">{finding.summary}</p>
         </div>
-
-        <div className="flex flex-col items-end space-y-2">
-          <div
-            className={cn(
-              "px-3 py-1 rounded-full text-sm font-medium",
-              finding.riskLevel === "High"
-                ? "bg-red-100 text-red-800"
-                : finding.riskLevel === "Moderate"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-green-100 text-green-800"
-            )}
-          >
-            {finding.riskLevel}
-          </div>
-
-          <div
-            className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium cursor-help"
-            title={`Evidence level: ${EVIDENCE_MAP[finding.evidenceLevel]}`}
-          >
-            {finding.evidenceLevel}
-          </div>
-        </div>
       </div>
 
-      {/* rsIDs */}
-      <div className="flex flex-wrap gap-1 mb-4">
-        {finding.rsIds.map((rsId) => (
-          <span
-            key={rsId}
-            className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono"
-          >
-            {rsId}
-          </span>
-        ))}
+      {/* Genetic Variants */}
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-1 mb-2">
+          {finding.variants.map((variant) => (
+            <div key={variant.rsid} className="flex items-center gap-1">
+              <span
+                className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono"
+                title={`${variant.gene_name} - ${variant.phenotype}`}
+              >
+                {variant.rsid}
+              </span>
+              <span
+                className={cn(
+                  "px-1 py-0.5 text-xs rounded font-medium",
+                  variant.evidence_level === "4 Stars"
+                    ? "bg-green-100 text-green-800"
+                    : variant.evidence_level === "3 Stars"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-gray-100 text-gray-700"
+                )}
+                title={`Evidence: ${variant.evidence_level}`}
+              >
+                {variant.evidence_level}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs text-gray-500">
+          Genes: {finding.variants.map((v) => v.gene_name).join(", ")}
+        </div>
       </div>
 
       {/* Absolute risk */}
@@ -112,12 +110,12 @@ function FindingCard({
       )}
 
       {/* Risk meter */}
-      <RiskMeter
+      {/* <RiskMeter
         value={adjustedRiskScore}
         label="Current Risk Score"
         uncertaintyRange={finding.uncertaintyRange}
         className="mb-4"
-      />
+      /> */}
 
       {/* What-if controls */}
       {finding.whatIf.length > 0 && (
@@ -260,7 +258,7 @@ export default function ReportLayout({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {/* Header */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          {/* <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
             <div className="flex flex-wrap gap-3 text-sm">
               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full">
                 Quality: {report.quality}
@@ -272,10 +270,10 @@ export default function ReportLayout({
                 Last updated: {report.generatedAt.toLocaleDateString()}
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Proactive advice */}
-          {highRiskFindings.length > 0 && (
+          {/* {highRiskFindings.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -314,7 +312,7 @@ export default function ReportLayout({
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Evidence groups */}
           <div className="space-y-6">

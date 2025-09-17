@@ -10,6 +10,10 @@ import type {
   Finding,
   Action,
   WhatIf,
+  EvidenceLevel,
+  RiskLevel,
+  ClinvarEvidenceLevel,
+  SimpleVariant,
 } from "./models";
 import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
@@ -19,357 +23,112 @@ import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
 import DNABackground from "./components/DNABackground";
 import PrivacyToast from "./components/PrivacyToast";
+// variantsData will be fetched from public/mutation_list.json
 import SystemRequirementsToast from "./components/SystemRequirementsToast";
 import MobileErrorScreen from "./components/MobileErrorScreen";
 import { useIsMobile } from "./utils/device";
 
-// Mock report generator
+// Mock report generator using mutation_list.json
 async function generateReportMock(demographics: Demographics): Promise<Report> {
   // Simulate processing delay
   await new Promise((resolve) =>
     setTimeout(resolve, Math.random() * 4000 + 8000)
   );
 
-  const mockFindings: Finding[] = [
-    // Evidence Level A findings
-    {
-      id: "eye-color",
-      title: "Eye Color",
-      summary:
-        "Your genetic variants strongly predict brown eyes with high confidence.",
-      rsIds: ["rs12913832", "rs1800407"],
-      riskLevel: "Low",
-      evidenceLevel: "A",
-      baseRiskScore: 15,
-      absoluteRisk: "Brown eyes (85% probability)",
-      category: "trait",
-      actions: [],
-      whatIf: [],
-      uncertaintyRange: [12, 18],
-    },
-    {
-      id: "lactose-intolerance",
-      title: "Lactose Intolerance",
-      summary:
-        "You have genetic variants associated with lactose persistence, suggesting you can digest dairy products into adulthood.",
-      rsIds: ["rs4988235", "rs182549"],
-      riskLevel: "Low",
-      evidenceLevel: "A",
-      baseRiskScore: 20,
-      absoluteRisk: formatAbsoluteRisk(demographics.age),
-      category: "trait",
-      actions: [
-        {
-          id: "dairy-intake",
-          title: "Monitor dairy intake",
-          description:
-            "While genetically you can process lactose, some people still experience symptoms.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "dairy-consumption",
-          label: "Daily dairy servings",
-          type: "slider",
-          currentValue: 2,
-          range: [0, 6],
-          step: 1,
-          unit: " servings",
-        },
-      ],
-    },
-    {
-      id: "caffeine-sensitivity",
-      title: "Caffeine Sensitivity",
-      summary:
-        "Your CYP1A2 variants suggest you are a fast caffeine metabolizer, meaning you can tolerate higher amounts of caffeine.",
-      rsIds: ["rs762551", "rs2069514"],
-      riskLevel: "Low",
-      evidenceLevel: "A",
-      baseRiskScore: 25,
-      category: "trait",
-      actions: [
-        {
-          id: "caffeine-timing",
-          title: "Optimize caffeine timing",
-          description:
-            "Even fast metabolizers should avoid caffeine 6 hours before bedtime.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "daily-caffeine",
-          label: "Daily caffeine intake",
-          type: "slider",
-          currentValue: 200,
-          range: [0, 600],
-          step: 50,
-          unit: "mg",
-        },
-      ],
-    },
+  // Fetch variants data from public directory
+  const response = await fetch("/mutation_list.json");
+  const variantsData: SimpleVariant[] = await response.json();
 
-    // Evidence Level B findings
-    {
-      id: "cad-risk",
-      title: "Coronary Artery Disease Risk",
-      summary:
-        "Multiple genetic variants contribute to a moderately elevated risk for coronary artery disease.",
-      rsIds: ["rs10757274", "rs2383206", "rs9982601"],
-      riskLevel: "High",
-      evidenceLevel: "B",
-      baseRiskScore: 75,
-      absoluteRisk: formatAbsoluteRisk(demographics.age),
-      category: "disease",
-      actions: [
-        {
-          id: "cardio-exercise",
-          title: "Regular cardiovascular exercise",
-          description:
-            "Aim for 150 minutes of moderate aerobic activity per week.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-        {
-          id: "lipid-screening",
-          title: "Regular lipid screening",
-          description:
-            "Check cholesterol levels annually or as recommended by your doctor.",
-          evidenceLevel: "A",
-          category: "screening",
-        },
-        {
-          id: "mediterranean-diet",
-          title: "Mediterranean-style diet",
-          description:
-            "Emphasize fruits, vegetables, whole grains, and healthy fats.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "smoking",
-          label: "Current smoker",
-          type: "toggle",
-          currentValue: false,
-        },
-        {
-          id: "exercise",
-          label: "Regular exercise",
-          type: "toggle",
-          currentValue: true,
-        },
-        {
-          id: "bmi",
-          label: "BMI",
-          type: "slider",
-          currentValue: 25,
-          range: [18, 35],
-          step: 0.5,
-          unit: "",
-        },
-      ],
-      uncertaintyRange: [65, 85],
+  // Group variants by phenotype to create findings
+  const variantsByPhenotype = variantsData.reduce(
+    (acc: Record<string, SimpleVariant[]>, variant: SimpleVariant) => {
+      const key = variant.phenotype;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(variant);
+      return acc;
     },
-    {
-      id: "t2d-risk",
-      title: "Type 2 Diabetes Risk",
-      summary:
-        "Your polygenic risk score suggests elevated susceptibility to type 2 diabetes.",
-      rsIds: ["rs7903146", "rs12255372", "rs1801282"],
-      riskLevel: "Moderate",
-      evidenceLevel: "B",
-      baseRiskScore: 60,
-      absoluteRisk: formatAbsoluteRisk(demographics.age),
-      category: "disease",
-      actions: [
-        {
-          id: "glucose-screening",
-          title: "Regular glucose screening",
-          description: "Monitor HbA1c and fasting glucose levels annually.",
-          evidenceLevel: "A",
-          category: "screening",
-        },
-        {
-          id: "weight-management",
-          title: "Maintain healthy weight",
-          description:
-            "Even modest weight loss can significantly reduce diabetes risk.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "weight-loss",
-          label: "Weight reduction",
-          type: "slider",
-          currentValue: 0,
-          range: [0, 20],
-          step: 2,
-          unit: "kg",
-        },
-        {
-          id: "sugar-intake",
-          label: "High sugar diet",
-          type: "toggle",
-          currentValue: false,
-        },
-      ],
-    },
-    {
-      id: "alcohol-flush",
-      title: "Alcohol Flush Response",
-      summary:
-        "You have variants in ALDH2 that may cause facial flushing and discomfort when consuming alcohol.",
-      rsIds: ["rs671"],
-      riskLevel: "Moderate",
-      evidenceLevel: "B",
-      baseRiskScore: 45,
-      category: "trait",
-      actions: [
-        {
-          id: "limit-alcohol",
-          title: "Moderate alcohol consumption",
-          description:
-            "Consider limiting alcohol intake to reduce uncomfortable symptoms.",
-          evidenceLevel: "B",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "alcohol-frequency",
-          label: "Drinks per week",
-          type: "slider",
-          currentValue: 2,
-          range: [0, 14],
-          step: 1,
-          unit: " drinks",
-        },
-      ],
-    },
+    {} as Record<string, SimpleVariant[]>
+  );
 
-    // Evidence Level C findings
-    {
-      id: "sleep-duration",
-      title: "Sleep Duration Preference",
-      summary:
-        "Genetic variants suggest you may naturally prefer longer sleep duration.",
-      rsIds: ["rs228697", "rs1556832"],
-      riskLevel: "Low",
-      evidenceLevel: "C",
-      baseRiskScore: 30,
-      category: "trait",
-      actions: [
-        {
-          id: "sleep-hygiene",
-          title: "Prioritize sleep hygiene",
-          description:
-            "Maintain consistent sleep schedule and aim for 7-9 hours per night.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "sleep-hours",
-          label: "Nightly sleep duration",
-          type: "slider",
-          currentValue: 8,
-          range: [5, 11],
-          step: 0.5,
-          unit: " hours",
-        },
-      ],
-    },
-    {
-      id: "injury-risk",
-      title: "Sports Injury Susceptibility",
-      summary:
-        "Preliminary evidence suggests variants that may affect connective tissue strength.",
-      rsIds: ["rs1800012", "rs12722"],
-      riskLevel: "Moderate",
-      evidenceLevel: "C",
-      baseRiskScore: 55,
-      category: "trait",
-      actions: [
-        {
-          id: "warm-up",
-          title: "Proper warm-up routine",
-          description:
-            "Always warm up before exercise and cool down afterward.",
-          evidenceLevel: "A",
-          category: "lifestyle",
-        },
-        {
-          id: "strength-training",
-          title: "Include strength training",
-          description:
-            "Building muscle strength can help protect joints and connective tissue.",
-          evidenceLevel: "B",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "exercise-intensity",
-          label: "High-intensity exercise",
-          type: "toggle",
-          currentValue: true,
-        },
-      ],
-    },
-    {
-      id: "vitamin-d",
-      title: "Vitamin D Metabolism",
-      summary:
-        "Genetic variants may affect how efficiently you process vitamin D.",
-      rsIds: ["rs2282679", "rs12785878"],
-      riskLevel: "Low",
-      evidenceLevel: "C",
-      baseRiskScore: 35,
-      category: "trait",
-      actions: [
-        {
-          id: "vitamin-d-test",
-          title: "Check vitamin D levels",
-          description:
-            "Consider annual testing, especially if you have limited sun exposure.",
-          evidenceLevel: "B",
-          category: "screening",
-        },
-        {
-          id: "sun-exposure",
-          title: "Moderate sun exposure",
-          description:
-            "Aim for 10-15 minutes of midday sun exposure several times per week.",
-          evidenceLevel: "B",
-          category: "lifestyle",
-        },
-      ],
-      whatIf: [
-        {
-          id: "supplement-use",
-          label: "Vitamin D supplement",
-          type: "toggle",
-          currentValue: false,
-        },
-      ],
-    },
-  ];
+  // Create findings from grouped variants
+  const findings: Finding[] = Object.entries(variantsByPhenotype).map(
+    ([phenotype, variants]: [string, SimpleVariant[]], index: number) => {
+      // Determine the overall evidence level based on the highest star rating
+      const maxStarRating = variants.reduce((max, variant) => {
+        const starNum = parseInt(variant.evidence_level);
+        const maxNum = parseInt(max);
+        return starNum > maxNum ? variant.evidence_level : max;
+      }, "1 Star");
+
+      // Map star rating to evidence level
+      const evidenceLevel: EvidenceLevel =
+        maxStarRating === "4 Stars"
+          ? "A"
+          : maxStarRating === "3 Stars"
+            ? "B"
+            : "C";
+
+      // Create a simple risk assessment based on evidence level and phenotype
+      const isHighRisk =
+        phenotype.toLowerCase().includes("cancer") ||
+        phenotype.toLowerCase().includes("disease") ||
+        phenotype.toLowerCase().includes("diabetes");
+
+      const riskLevel: RiskLevel = isHighRisk
+        ? "High"
+        : evidenceLevel === "A"
+          ? "Moderate"
+          : "Low";
+
+      const baseRiskScore =
+        riskLevel === "High"
+          ? 70 + Math.random() * 20
+          : riskLevel === "Moderate"
+            ? 40 + Math.random() * 30
+            : 10 + Math.random() * 30;
+
+      return {
+        id: `finding-${index}`,
+        title: phenotype.charAt(0).toUpperCase() + phenotype.slice(1),
+        summary: `Genetic analysis of ${variants.length} variant${variants.length > 1 ? "s" : ""} in ${variants.map((v) => v.gene_name).join(", ")} related to ${phenotype.toLowerCase()}.`,
+        variants: variants.map((v) => ({
+          rsid: v.rsid,
+          evidence_level: v.evidence_level as ClinvarEvidenceLevel,
+          gene_name: v.gene_name,
+          phenotype: v.phenotype,
+          chrom: v.chrom,
+          position: v.position,
+          reference_allele: v.reference_allele,
+          alternative_allele: v.alternative_allele,
+        })),
+        riskLevel,
+        evidenceLevel,
+        baseRiskScore: Math.round(baseRiskScore),
+        absoluteRisk:
+          isHighRisk && demographics.age
+            ? formatAbsoluteRisk(demographics.age)
+            : undefined,
+        category: isHighRisk ? "disease" : "trait",
+        actions: [], // Simplified - no actions for now
+        whatIf: [], // Simplified - no what-if scenarios for now
+        uncertaintyRange:
+          evidenceLevel === "A"
+            ? [baseRiskScore - 5, baseRiskScore + 5]
+            : evidenceLevel === "B"
+              ? [baseRiskScore - 10, baseRiskScore + 10]
+              : [baseRiskScore - 15, baseRiskScore + 15],
+      };
+    }
+  );
 
   return {
     id: `report-${Date.now()}`,
     vendor: "Generic VCF",
     quality: "High",
     generatedAt: new Date(),
-    findings: mockFindings,
+    findings,
     demographics,
   };
 }
@@ -598,10 +357,10 @@ function AppContent() {
                 state.report.findings.find(
                   (f) => f.id === state.selectedFindingId
                 )?.riskLevel || "Low",
-              rsIds:
+              variants:
                 state.report.findings.find(
                   (f) => f.id === state.selectedFindingId
-                )?.rsIds || [],
+                )?.variants || [],
             }
           : undefined,
     };
@@ -617,7 +376,7 @@ function AppContent() {
         let assistantContent = "I understand you're asking about ";
 
         if (finding) {
-          assistantContent += `${finding.title}. Based on your genetic variants (${finding.rsIds.join(", ")}), `;
+          assistantContent += `${finding.title}. Based on your genetic variants (${finding.variants.map((v) => v.rsid).join(", ")}), `;
 
           if (content.toLowerCase().includes("risk")) {
             assistantContent += `your current risk level is ${finding.riskLevel.toLowerCase()}. This means ${

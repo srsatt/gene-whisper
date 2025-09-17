@@ -113,7 +113,7 @@ export default function UploadPage({
             {showError && (
               <div className="mt-3">
                 <p className="text-sm text-red-600">
-                  Please upload a DNA file.
+                  Please upload a DNA file or try the demo.
                 </p>
               </div>
             )}

@@ -1,0 +1,62 @@
+[
+  {
+    "rsid":"rs121908789",
+    "evidence_level":"3 Stars",
+    "gene_name":"CFTR",
+    "phenotype":"Cystic fibrosis, Cystic fibrosis;Congenital bilateral aplasia of vas deferens from CFTR mutation, not provided, Bronchiectasis with or without elevated sweat chloride 1, CFTR-related disorder",
+    "chrom":"7",
+    "position":117282541,
+    "reference_allele":"C",
+    "alternative_allele":"CT"
+  },
+  {
+    "rsid":"rs113993960",
+    "evidence_level":"4 Stars",
+    "gene_name":"CFTR",
+    "phenotype":"Cystic fibrosis, Bronchiectasis with or without elevated sweat chloride 1, modifier of, not provided, Hereditary pancreatitis, Duodenal stenosis, Recurrent pancreatitis, Congenital bilateral aplasia of vas deferens from CFTR mutation;Cystic fibrosis, Obstructive azoospermia, ivacaftor \/ lumacaftor response - Efficacy, ivacaftor \/ tezacaftor response - Efficacy, CFTR-related disorder, Hereditary pancreatitis;Cystic fibrosis, See cases, Bronchiectasis with or without elevated sweat chloride 1;Congenital bilateral aplasia of vas deferens from CFTR mutation;Hereditary pancreatitis;Cystic fibrosis, Congenital bilateral aplasia of vas deferens from CFTR mutation, Bronchiectasis with or without elevated sweat chloride 1",
+    "chrom":"7",
+    "position":117199644,
+    "reference_allele":"ATCT",
+    "alternative_allele":"A"
+  },
+  {
+    "rsid":"rs56821304",
+    "evidence_level":"1 Star",
+    "gene_name":"KRT81",
+    "phenotype":"not provided, Monilethrix-2",
+    "chrom":"12",
+    "position":52680929,
+    "reference_allele":"C",
+    "alternative_allele":"T"
+  },
+  {
+    "rsid":"rs121909109",
+    "evidence_level":"1 Star",
+    "gene_name":"PITX1",
+    "phenotype":"Clubfoot, not provided",
+    "chrom":"5",
+    "position":134366980,
+    "reference_allele":"C",
+    "alternative_allele":"T"
+  },
+  {
+    "rsid":"rs121908761",
+    "evidence_level":"3 Stars",
+    "gene_name":"CFTR",
+    "phenotype":"Cystic fibrosis, Cystic fibrosis;Congenital bilateral aplasia of vas deferens from CFTR mutation;Bronchiectasis with or without elevated sweat chloride 1;Hereditary pancreatitis, Cystic fibrosis;Congenital bilateral aplasia of vas deferens from CFTR mutation, CFTR-related disorder, not provided, not specified, Bronchiectasis with or without elevated sweat chloride 1",
+    "chrom":"7",
+    "position":117251771,
+    "reference_allele":"C",
+    "alternative_allele":"A"
+  },
+  {
+    "rsid":"rs34517004",
+    "evidence_level":"1 Star",
+    "gene_name":"GNPTAB",
+    "phenotype":"Mucolipidosis type II, Mucolipidosis type II;Pseudo-Hurler polydystrophy",
+    "chrom":"12",
+    "position":102164856,
+    "reference_allele":"GT",
+    "alternative_allele":"G"
+  }
+]

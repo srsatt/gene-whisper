@@ -29,6 +29,12 @@ export const EVIDENCE_MAP = {
   C: "Tentative"
 };
 
+export const STAR_RATING_MAP = {
+  "4 Stars": "Scientifically Supported",
+  "3 Stars": "Moderate",
+  "1 Star": "Tentative"
+};
+
 export const LOADER_LINES = [
   "Parsing and validating file…",
   "Normalizing variant formats…",

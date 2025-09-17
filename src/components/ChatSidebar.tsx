@@ -89,12 +89,13 @@ export default function ChatSidebar({
             >
               {selectedFinding.riskLevel}
             </div>
-            {selectedFinding.rsIds.slice(0, 2).map((rsId) => (
+            {selectedFinding.variants.slice(0, 2).map((variant) => (
               <div
-                key={rsId}
+                key={variant.rsid}
                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-mono bg-gray-100 text-gray-700"
+                title={`${variant.gene_name} - ${variant.phenotype}`}
               >
-                {rsId}
+                {variant.rsid}
               </div>
             ))}
           </div>

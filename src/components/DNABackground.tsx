@@ -1,81 +1,64 @@
 import React from "react";
 
-import { DNAIcons } from "./DNAIcons";
-
 interface DNABackgroundProps {
   className?: string;
 }
 
-const iconKeys = Object.keys(DNAIcons) as (keyof typeof DNAIcons)[];
-
-interface FloatingIcon {
+interface BackgroundIcon {
   id: number;
-  iconKey: keyof typeof DNAIcons;
-  size: number;
-  left: number;
-  top: number;
-  opacity: number;
-  animationClass: string;
-  rotation: number;
+  x: number; // Случайная позиция X (0-100%)
+  y: number; // Случайная позиция Y (0-100%)
+  size: number; // Случайный размер (20-50px)
+  initialRotation: number; // Случайный начальный угол (0-360°)
 }
 
-// Генерируем случайные позиции и параметры для иконок
-const generateIcons = (count: number): FloatingIcon[] => {
-  const animationClasses = [
-    "animate-float-slow",
-    "animate-float-medium",
-    "animate-float-fast",
-    "animate-drift-left",
-    "animate-drift-right",
-    "animate-bounce-subtle",
-  ];
-
-  return Array.from({ length: count }, (_, i) => {
-    const iconKey = iconKeys[Math.floor(Math.random() * iconKeys.length)];
-    return {
-      id: i,
-      iconKey,
-      size: Math.random() * 20 + 15, // 15-35px
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      opacity: Math.random() * 0.08 + 0.02, // 0.02-0.1
-      animationClass:
-        animationClasses[Math.floor(Math.random() * animationClasses.length)],
-      rotation: Math.random() * 360,
-    };
-  });
-};
-
 const DNABackground: React.FC<DNABackgroundProps> = ({ className = "" }) => {
-  // Генерируем много иконок для насыщенного фона
-  const icons = React.useMemo(() => generateIcons(300), []);
+  // Генерируем картинки один раз при загрузке
+  const icons = React.useMemo((): BackgroundIcon[] => {
+    return Array.from({ length: 120 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100, // 0-100%
+      y: Math.random() * 100, // 0-100%
+      size: Math.random() * 30 + 20, // 20-50px
+      initialRotation: Math.random() * 360, // 0-360°
+    }));
+  }, []);
 
   return (
-    <>
+    <div className={`fixed inset-0 pointer-events-none z-0 ${className}`}>
+      {/* Фоновый градиент */}
       <div
-        className={`fixed inset-0 overflow-hidden pointer-events-none z-0 ${className}`}
-      >
-        <div className="absolute inset-0">
-          {icons.map((iconData) => (
-            <div
-              key={iconData.id}
-              className={`absolute text-gray-800 ${iconData.animationClass}`}
-              style={{
-                left: `${iconData.left}%`,
-                top: `${iconData.top}%`,
-                width: `${iconData.size}px`,
-                height: `${iconData.size}px`,
-                opacity: iconData.opacity,
-                transform: `rotate(${iconData.rotation}deg)`,
-                animationDelay: `${Math.random() * 10}s`,
-              }}
-            >
-              {DNAIcons[iconData.iconKey]}
-            </div>
-          ))}
-        </div>
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+        }}
+      />
+
+      {/* Вращающиеся картинки */}
+      <div className="absolute inset-0 overflow-hidden">
+        {icons.map((icon) => (
+          <img
+            key={icon.id}
+            src="/bg/science_13933684.png"
+            alt=""
+            className="absolute animate-spin-continuous"
+            style={
+              {
+                left: `${icon.x}%`,
+                top: `${icon.y}%`,
+                width: `${icon.size}px`,
+                height: `${icon.size}px`,
+                "--initial-angle": `${icon.initialRotation}deg`,
+                opacity: 0.15,
+                filter: "grayscale(70%)",
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: "20s",
+              } as React.CSSProperties & { "--initial-angle": string }
+            }
+          />
+        ))}
       </div>
-    </>
+    </div>
   );
 };
 

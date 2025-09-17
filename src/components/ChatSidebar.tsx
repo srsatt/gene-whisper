@@ -1,20 +1,20 @@
 // src/components/ChatSidebar.tsx
 
 import React, { useState, useRef, useEffect } from "react";
-import type { ChatMessage, Finding } from "../models";
-import { CHAT_HEADER, CHAT_BADGE, PROMPTS } from "../assets/copy";
+import type { ChatMessage, Mutation } from "../models";
+import { CHAT_HEADER, PROMPTS } from "../assets/copy";
 import { cn } from "../tools";
 
 interface ChatSidebarProps {
   messages: ChatMessage[];
-  selectedFinding?: Finding;
+  selectedMutation?: Mutation;
   onSendMessage: (content: string) => void;
   onClose?: () => void;
 }
 
 export default function ChatSidebar({
   messages,
-  selectedFinding,
+  selectedMutation,
   onSendMessage,
   onClose,
 }: ChatSidebarProps) {
@@ -72,32 +72,26 @@ export default function ChatSidebar({
         </div>
 
         {/* Context chips */}
-        {selectedFinding && (
+        {selectedMutation && (
           <div className="mt-2 flex flex-wrap gap-1">
-            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {selectedFinding.title}
+            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-mono bg-blue-100 text-blue-800">
+              {selectedMutation.rsid}
+            </div>
+            <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+              {selectedMutation.gene_name}
             </div>
             <div
               className={cn(
                 "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                selectedFinding.riskLevel === "High"
-                  ? "bg-red-100 text-red-800"
-                  : selectedFinding.riskLevel === "Moderate"
+                selectedMutation.evidence_level === "4 Stars"
+                  ? "bg-green-100 text-green-800"
+                  : selectedMutation.evidence_level === "3 Stars"
                     ? "bg-yellow-100 text-yellow-800"
-                    : "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-700"
               )}
             >
-              {selectedFinding.riskLevel}
+              {selectedMutation.evidence_level}
             </div>
-            {selectedFinding.variants.slice(0, 2).map((variant) => (
-              <div
-                key={variant.rsid}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-mono bg-gray-100 text-gray-700"
-                title={`${variant.gene_name} - ${variant.phenotype}`}
-              >
-                {variant.rsid}
-              </div>
-            ))}
           </div>
         )}
       </div>
@@ -120,9 +114,9 @@ export default function ChatSidebar({
               />
             </svg>
             <p className="text-sm">
-              {selectedFinding
-                ? `Ask me about ${selectedFinding.title}`
-                : "Select a finding to start discussing"}
+              {selectedMutation
+                ? `Ask me about ${selectedMutation.rsid} (${selectedMutation.gene_name})`
+                : "Select a mutation to start discussing"}
             </p>
           </div>
         ) : (
@@ -158,7 +152,7 @@ export default function ChatSidebar({
       </div>
 
       {/* Suggested prompts */}
-      {messages.length === 0 && selectedFinding && (
+      {messages.length === 0 && selectedMutation && (
         <div className="flex-shrink-0 px-4 py-2 border-t border-gray-100">
           <div className="space-y-2">
             <p className="text-xs text-gray-500">Suggested questions:</p>
@@ -186,16 +180,16 @@ export default function ChatSidebar({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={
-              selectedFinding
-                ? "Ask about this finding..."
-                : "Select a finding first"
+              selectedMutation
+                ? "Ask about this mutation..."
+                : "Select a mutation first"
             }
-            disabled={!selectedFinding}
+            disabled={!selectedMutation}
             className="pl-2 flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={!inputValue.trim() || !selectedFinding}
+            disabled={!inputValue.trim() || !selectedMutation}
             className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Send message"
           >

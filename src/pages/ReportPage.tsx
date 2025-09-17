@@ -1,22 +1,22 @@
 // src/pages/ReportPage.tsx
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import type { Report, ChatMessage } from "../models";
 import ReportLayout from "../components/ReportLayout";
 
 interface ReportPageProps {
   report: Report;
-  selectedFindingId?: string;
+  selectedMutationId?: string;
   chatMessages: ChatMessage[];
-  onDiscuss: (findingId: string) => void;
+  onDiscuss: (rsid: string) => void;
   onSendMessage: (content: string) => void;
   onBack: () => void;
 }
 
 export default function ReportPage({
   report,
-  selectedFindingId,
+  selectedMutationId,
   chatMessages,
   onDiscuss,
   onSendMessage,
@@ -58,7 +58,7 @@ export default function ReportPage({
                   Your Genetic Report
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {report.findings.length} findings • Generated{" "}
+                  {report.mutations.length} mutations • Generated{" "}
                   {report.generatedAt.toLocaleDateString()}
                 </p>
               </div>
@@ -118,7 +118,7 @@ export default function ReportPage({
       <div className="flex-1">
         <ReportLayout
           report={report}
-          selectedFindingId={selectedFindingId}
+          selectedMutationId={selectedMutationId}
           chatMessages={chatMessages}
           onDiscuss={onDiscuss}
           onSendMessage={onSendMessage}

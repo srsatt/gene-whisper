@@ -1,6 +1,6 @@
 // src/db.ts
 
-import type { Demographics, Report, EvidenceLevel } from './models';
+import type { Demographics, Report, StarRating } from './models';
 
 const STORAGE_KEYS = {
   DEMOGRAPHICS: 'gene-whisper-demographics',
@@ -58,7 +58,7 @@ export function getLastReport(): Report | null {
 }
 
 export interface UIPreferences {
-  evidenceExpanded: Record<EvidenceLevel, boolean>;
+  sectionsExpanded: Record<StarRating, boolean>;
   chatOpen: boolean;
 }
 
@@ -82,7 +82,7 @@ export function getUIPreferences(): UIPreferences {
     console.warn('Failed to get UI preferences:', error);
   }
   return {
-    evidenceExpanded: { A: true, B: false, C: false },
+    sectionsExpanded: { "4 Stars": true, "3 Stars": true, "1 Star": false },
     chatOpen: false
   };
 }

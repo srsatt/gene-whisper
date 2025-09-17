@@ -1,29 +1,19 @@
-// src/App.tsx
-
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { createContext, useContext, useReducer } from "react";
 import type {
   AppState,
-  Vendor,
   Demographics,
   Report,
   ChatMessage,
-  Finding,
-  Action,
-  WhatIf,
-  EvidenceLevel,
-  RiskLevel,
-  ClinvarEvidenceLevel,
-  SimpleVariant,
+  Mutation,
+  StarRating,
 } from "./models";
 import { DISCLAIMER_TOP, ERR_UNSUPPORTED } from "./assets/copy";
 import { getDemographics, saveDemographics, saveReport } from "./db";
-import { formatAbsoluteRisk } from "./tools";
 import UploadPage from "./pages/UploadPage";
 import ProcessingPage from "./pages/ProcessingPage";
 import ReportPage from "./pages/ReportPage";
 import DNABackground from "./components/DNABackground";
 import PrivacyToast from "./components/PrivacyToast";
-// variantsData will be fetched from public/mutation_list.json
 import SystemRequirementsToast from "./components/SystemRequirementsToast";
 import MobileErrorScreen from "./components/MobileErrorScreen";
 import { useIsMobile } from "./utils/device";
@@ -35,100 +25,15 @@ async function generateReportMock(demographics: Demographics): Promise<Report> {
     setTimeout(resolve, Math.random() * 4000 + 8000)
   );
 
-  // Fetch variants data from public directory
+  // Fetch mutations data from public directory
   const response = await fetch("/mutation_list.json");
-  const variantsData: SimpleVariant[] = await response.json();
-
-  // Group variants by phenotype to create findings
-  const variantsByPhenotype = variantsData.reduce(
-    (acc: Record<string, SimpleVariant[]>, variant: SimpleVariant) => {
-      const key = variant.phenotype;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(variant);
-      return acc;
-    },
-    {} as Record<string, SimpleVariant[]>
-  );
-
-  // Create findings from grouped variants
-  const findings: Finding[] = Object.entries(variantsByPhenotype).map(
-    ([phenotype, variants]: [string, SimpleVariant[]], index: number) => {
-      // Determine the overall evidence level based on the highest star rating
-      const maxStarRating = variants.reduce((max, variant) => {
-        const starNum = parseInt(variant.evidence_level);
-        const maxNum = parseInt(max);
-        return starNum > maxNum ? variant.evidence_level : max;
-      }, "1 Star");
-
-      // Map star rating to evidence level
-      const evidenceLevel: EvidenceLevel =
-        maxStarRating === "4 Stars"
-          ? "A"
-          : maxStarRating === "3 Stars"
-            ? "B"
-            : "C";
-
-      // Create a simple risk assessment based on evidence level and phenotype
-      const isHighRisk =
-        phenotype.toLowerCase().includes("cancer") ||
-        phenotype.toLowerCase().includes("disease") ||
-        phenotype.toLowerCase().includes("diabetes");
-
-      const riskLevel: RiskLevel = isHighRisk
-        ? "High"
-        : evidenceLevel === "A"
-          ? "Moderate"
-          : "Low";
-
-      const baseRiskScore =
-        riskLevel === "High"
-          ? 70 + Math.random() * 20
-          : riskLevel === "Moderate"
-            ? 40 + Math.random() * 30
-            : 10 + Math.random() * 30;
-
-      return {
-        id: `finding-${index}`,
-        title: phenotype.charAt(0).toUpperCase() + phenotype.slice(1),
-        summary: `Genetic analysis of ${variants.length} variant${variants.length > 1 ? "s" : ""} in ${variants.map((v) => v.gene_name).join(", ")} related to ${phenotype.toLowerCase()}.`,
-        variants: variants.map((v) => ({
-          rsid: v.rsid,
-          evidence_level: v.evidence_level as ClinvarEvidenceLevel,
-          gene_name: v.gene_name,
-          phenotype: v.phenotype,
-          chrom: v.chrom,
-          position: v.position,
-          reference_allele: v.reference_allele,
-          alternative_allele: v.alternative_allele,
-        })),
-        riskLevel,
-        evidenceLevel,
-        baseRiskScore: Math.round(baseRiskScore),
-        absoluteRisk:
-          isHighRisk && demographics.age
-            ? formatAbsoluteRisk(demographics.age)
-            : undefined,
-        category: isHighRisk ? "disease" : "trait",
-        actions: [], // Simplified - no actions for now
-        whatIf: [], // Simplified - no what-if scenarios for now
-        uncertaintyRange:
-          evidenceLevel === "A"
-            ? [baseRiskScore - 5, baseRiskScore + 5]
-            : evidenceLevel === "B"
-              ? [baseRiskScore - 10, baseRiskScore + 10]
-              : [baseRiskScore - 15, baseRiskScore + 15],
-      };
-    }
-  );
+  const mutations: Mutation[] = await response.json();
 
   return {
     id: `report-${Date.now()}`,
-    vendor: "Generic VCF",
-    quality: "High",
+    vendor: "23andMe",
     generatedAt: new Date(),
-    findings,
+    mutations,
     demographics,
   };
 }
@@ -147,9 +52,9 @@ type AppAction =
   | { type: "SET_FILE"; file: File }
   | { type: "SET_DEMOGRAPHICS"; demographics: Demographics }
   | { type: "SET_REPORT"; report: Report }
-  | { type: "SET_SELECTED_FINDING"; findingId?: string }
+  | { type: "SET_SELECTED_MUTATION"; rsid?: string }
   | { type: "ADD_CHAT_MESSAGE"; message: ChatMessage }
-  | { type: "TOGGLE_EVIDENCE_EXPANDED"; level: "A" | "B" | "C" }
+  | { type: "TOGGLE_SECTION_EXPANDED"; level: StarRating }
   | { type: "SET_CHAT_OPEN"; open: boolean };
 
 // Reducer
@@ -167,8 +72,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_REPORT":
       return { ...state, report: action.report, phase: "report" };
 
-    case "SET_SELECTED_FINDING":
-      return { ...state, selectedFindingId: action.findingId };
+    case "SET_SELECTED_MUTATION":
+      return { ...state, selectedMutationId: action.rsid };
 
     case "ADD_CHAT_MESSAGE":
       return {
@@ -176,14 +81,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         chatMessages: [...state.chatMessages, action.message],
       };
 
-    case "TOGGLE_EVIDENCE_EXPANDED":
+    case "TOGGLE_SECTION_EXPANDED":
       return {
         ...state,
         uiPreferences: {
           ...state.uiPreferences,
-          evidenceExpanded: {
-            ...state.uiPreferences.evidenceExpanded,
-            [action.level]: !state.uiPreferences.evidenceExpanded[action.level],
+          sectionsExpanded: {
+            ...state.uiPreferences.sectionsExpanded,
+            [action.level]: !state.uiPreferences.sectionsExpanded[action.level],
           },
         },
       };
@@ -332,9 +237,9 @@ function AppContent() {
     dispatch({ type: "SET_PHASE", phase: "upload" });
   };
 
-  // Handle discuss finding
-  const handleDiscuss = (findingId: string) => {
-    dispatch({ type: "SET_SELECTED_FINDING", findingId });
+  // Handle discuss mutation
+  const handleDiscuss = (rsid: string) => {
+    dispatch({ type: "SET_SELECTED_MUTATION", rsid });
     dispatch({ type: "SET_CHAT_OPEN", open: true });
   };
 
@@ -345,22 +250,18 @@ function AppContent() {
       role: "user",
       content,
       timestamp: new Date(),
-      findingContext:
-        state.selectedFindingId && state.report
+      mutationContext:
+        state.selectedMutationId && state.report
           ? {
-              findingId: state.selectedFindingId,
-              title:
-                state.report.findings.find(
-                  (f) => f.id === state.selectedFindingId
-                )?.title || "",
-              riskLevel:
-                state.report.findings.find(
-                  (f) => f.id === state.selectedFindingId
-                )?.riskLevel || "Low",
-              variants:
-                state.report.findings.find(
-                  (f) => f.id === state.selectedFindingId
-                )?.variants || [],
+              rsid: state.selectedMutationId,
+              gene_name:
+                state.report.mutations.find(
+                  (m) => m.rsid === state.selectedMutationId
+                )?.gene_name || "",
+              phenotype:
+                state.report.mutations.find(
+                  (m) => m.rsid === state.selectedMutationId
+                )?.phenotype || "",
             }
           : undefined,
     };
@@ -370,37 +271,38 @@ function AppContent() {
     // Mock assistant response
     setTimeout(
       () => {
-        const finding = state.report?.findings.find(
-          (f) => f.id === state.selectedFindingId
+        const mutation = state.report?.mutations.find(
+          (m) => m.rsid === state.selectedMutationId
         );
         let assistantContent = "I understand you're asking about ";
 
-        if (finding) {
-          assistantContent += `${finding.title}. Based on your genetic variants (${finding.variants.map((v) => v.rsid).join(", ")}), `;
+        if (mutation) {
+          assistantContent += `${mutation.rsid} in the ${mutation.gene_name} gene. `;
 
           if (content.toLowerCase().includes("risk")) {
-            assistantContent += `your current risk level is ${finding.riskLevel.toLowerCase()}. This means ${
-              finding.riskLevel === "High"
-                ? "you have elevated genetic predisposition"
-                : finding.riskLevel === "Moderate"
-                  ? "you have some genetic predisposition"
-                  : "you have lower genetic predisposition"
-            } compared to the average population.`;
-          } else if (content.toLowerCase().includes("action")) {
-            assistantContent += `the most evidence-based actions include: ${finding.actions
-              .slice(0, 2)
-              .map((a) => a.title.toLowerCase())
-              .join(
-                " and "
-              )}. These recommendations have ${finding.actions[0]?.evidenceLevel === "A" ? "strong" : "moderate"} scientific support.`;
-          } else if (content.toLowerCase().includes("population")) {
-            assistantContent += `this affects approximately ${Math.round(finding.baseRiskScore)}% of people with similar genetic profiles. Your specific risk may vary based on lifestyle and environmental factors.`;
+            assistantContent += `This variant is associated with ${mutation.phenotype.toLowerCase()}. The evidence level is ${mutation.evidence_level}, which means ${
+              mutation.evidence_level === "4 Stars"
+                ? "there is strong scientific evidence"
+                : mutation.evidence_level === "3 Stars"
+                  ? "there is moderate scientific evidence"
+                  : "there is preliminary evidence"
+            } supporting this association.`;
+          } else if (content.toLowerCase().includes("gene")) {
+            assistantContent += `The ${mutation.gene_name} gene is located on chromosome ${mutation.chrom} at position ${mutation.position}. This variant involves a change from ${mutation.reference_allele} to ${mutation.alternative_allele}.`;
+          } else if (content.toLowerCase().includes("evidence")) {
+            assistantContent += `This variant has ${mutation.evidence_level} evidence level, indicating ${
+              mutation.evidence_level === "4 Stars"
+                ? "high confidence in the genetic association"
+                : mutation.evidence_level === "3 Stars"
+                  ? "moderate confidence in the genetic association"
+                  : "preliminary evidence that requires further validation"
+            }.`;
           } else {
-            assistantContent += `this finding has ${finding.evidenceLevel === "A" ? "strong" : finding.evidenceLevel === "B" ? "moderate" : "preliminary"} scientific evidence. The key factors that influence this trait include your specific genetic variants and potentially modifiable lifestyle factors.`;
+            assistantContent += `This genetic variant is associated with ${mutation.phenotype.toLowerCase()}. It's located in the ${mutation.gene_name} gene and has ${mutation.evidence_level} evidence supporting its clinical significance.`;
           }
         } else {
           assistantContent +=
-            "your genetic results. Please select a specific finding from your report to get more detailed information.";
+            "your genetic results. Please select a specific mutation from your report to get more detailed information.";
         }
 
         const assistantMessage: ChatMessage = {
@@ -443,7 +345,7 @@ function AppContent() {
         return state.report ? (
           <ReportPage
             report={state.report}
-            selectedFindingId={state.selectedFindingId}
+            selectedMutationId={state.selectedMutationId}
             chatMessages={state.chatMessages}
             onDiscuss={handleDiscuss}
             onSendMessage={handleSendMessage}
@@ -514,7 +416,7 @@ function App() {
     demographics: getDemographics(),
     chatMessages: [],
     uiPreferences: {
-      evidenceExpanded: { A: true, B: false, C: false },
+      sectionsExpanded: { "4 Stars": true, "3 Stars": true, "1 Star": false },
       chatOpen: false,
     },
   };

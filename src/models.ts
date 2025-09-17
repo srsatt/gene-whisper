@@ -3,25 +3,9 @@ import type { MLCEngineInterface } from '@mlc-ai/web-llm'
 
 export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';
 
-export type EvidenceLevel = 'A' | 'B' | 'C';
-
 export type StarRating = '1 Star' | '3 Stars' | '4 Stars';
 
-export type ClinvarEvidenceLevel = '1 Star' | '3 Stars' | '4 Stars';
-
-export interface GeneticVariant {
-  rsid: string;
-  evidence_level: ClinvarEvidenceLevel;
-  gene_name: string;
-  phenotype: string;
-  chrom: string; // Can be converted to number
-  position: number;
-  reference_allele: string;
-  alternative_allele: string;
-}
-
-// Simplified variant structure matching variants.json
-export interface SimpleVariant {
+export interface Mutation {
   rsid: string;
   evidence_level: StarRating;
   gene_name: string;
@@ -31,8 +15,6 @@ export interface SimpleVariant {
   reference_allele: string;
   alternative_allele: string;
 }
-
-export type RiskLevel = 'Low' | 'Moderate' | 'High';
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';
 export type ChatModel = {
@@ -54,45 +36,11 @@ export interface Demographics {
   weight?: number;
 }
 
-export interface WhatIf {
-  id: string;
-  label: string;
-  type: 'toggle' | 'slider';
-  currentValue: number | boolean;
-  range?: [number, number];
-  step?: number;
-  unit?: string;
-}
-
-export interface Action {
-  id: string;
-  title: string;
-  description: string;
-  evidenceLevel: EvidenceLevel;
-  category: 'lifestyle' | 'screening' | 'supplement' | 'medical';
-}
-
-export interface Finding {
-  id: string;
-  title: string;
-  summary: string;
-  variants: GeneticVariant[];
-  riskLevel: RiskLevel;
-  evidenceLevel: EvidenceLevel;
-  baseRiskScore: number; // 0-100
-  absoluteRisk?: string;
-  category: 'trait' | 'disease';
-  actions: Action[];
-  whatIf: WhatIf[];
-  uncertaintyRange?: [number, number];
-}
-
 export interface Report {
   id: string;
   vendor: Vendor;
-  quality: 'High' | 'Medium' | 'Low';
   generatedAt: Date;
-  findings: Finding[];
+  mutations: Mutation[];
   demographics?: Demographics;
 }
 
@@ -101,11 +49,10 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  findingContext?: {
-    findingId: string;
-    title: string;
-    riskLevel: RiskLevel;
-    variants: GeneticVariant[];
+  mutationContext?: {
+    rsid: string;
+    gene_name: string;
+    phenotype: string;
   };
 }
 
@@ -114,10 +61,10 @@ export interface AppState {
   demographics: Demographics;
   uploadedFile?: File;
   report?: Report;
-  selectedFindingId?: string;
+  selectedMutationId?: string;
   chatMessages: ChatMessage[];
   uiPreferences: {
-    evidenceExpanded: Record<EvidenceLevel, boolean>;
+    sectionsExpanded: Record<StarRating, boolean>;
     chatOpen: boolean;
   };
 }

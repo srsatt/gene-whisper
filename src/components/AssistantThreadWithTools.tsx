@@ -162,13 +162,14 @@ const AssistantMessage = () => {
 const SuggestedPrompts = ({
 	prompts,
 	onPromptClick,
+	isEmpty,
 }: {
 	prompts: string[];
 	onPromptClick?: (prompt: string) => void;
+	isEmpty: boolean;
 }) => {
-	const thread = useThread();
-	const isEmpty = thread.messages.length === 0;
-
+	console.log("🔍 Debug - SuggestedPrompts render:", { isEmpty, promptsLength: prompts.length, hasOnClick: !!onPromptClick });
+	
 	if (!isEmpty || prompts.length === 0 || !onPromptClick) {
 		return null;
 	}
@@ -182,7 +183,10 @@ const SuggestedPrompts = ({
 						<button
 							key={prompt}
 							type="button"
-							onClick={() => onPromptClick(prompt)}
+							onClick={() => {
+								console.log("🔍 Debug - Button clicked:", prompt);
+								onPromptClick(prompt);
+							}}
 							className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
 						>
 							{prompt}
@@ -508,8 +512,33 @@ Use this information to provide more personalized and relevant medical insights.
 
 	return (
 		<AssistantRuntimeProvider key={`provider-${resetCounter}`} runtime={runtime}>
-			<div className="h-full flex flex-col">
-				<ThreadPrimitive.Root key={`thread-${resetCounter}`} className="flex h-full flex-col bg-white">
+			<ThreadContent
+				resetCounter={resetCounter}
+				prompts={prompts}
+				onPromptClick={onPromptClick}
+			/>
+		</AssistantRuntimeProvider>
+	);
+}
+
+// Separate component to access thread context
+const ThreadContent = ({
+	resetCounter,
+	prompts,
+	onPromptClick,
+}: {
+	resetCounter: number;
+	prompts: string[];
+	onPromptClick?: (prompt: string) => void;
+}) => {
+	const thread = useThread();
+	const isEmpty = thread.messages.length === 0;
+	
+	console.log("🔍 Debug - ThreadContent render:", { resetCounter, isEmpty, messagesLength: thread.messages.length });
+
+	return (
+		<div className="h-full flex flex-col">
+			<ThreadPrimitive.Root key={`thread-${resetCounter}`} className="flex h-full flex-col bg-white">
 					<div className="border-b border-gray-200 bg-gray-50 p-3">
 						<h3 className="text-sm font-semibold text-gray-900">
 							Medical AI Assistant
@@ -525,7 +554,7 @@ Use this information to provide more personalized and relevant medical insights.
 							}}
 						/>
 					</ThreadPrimitive.Viewport>
-					<SuggestedPrompts prompts={prompts} onPromptClick={onPromptClick} />
+					<SuggestedPrompts key={`prompts-${resetCounter}`} prompts={prompts} onPromptClick={onPromptClick} isEmpty={isEmpty} />
 					<div className="border-t border-gray-200 p-3">
 						<ComposerPrimitive.Root className="flex items-end gap-2">
 							<ComposerPrimitive.Input
@@ -554,6 +583,5 @@ Use this information to provide more personalized and relevant medical insights.
 					</div>
 				</ThreadPrimitive.Root>
 			</div>
-		</AssistantRuntimeProvider>
 	);
-}
+};

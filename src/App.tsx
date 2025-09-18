@@ -52,17 +52,17 @@ async function loadAllData(
   // Define all file URLs and their corresponding phase names
   const fileLoads = [
     {
-      url: "/data_files/prs_config.json",
+      url: "/prs_config.json",
       phase: "Loading PRS configurations",
       key: "prsConfig",
     },
     {
-      url: "/data_files/prs_23andme_index_map.json",
+      url: "/prs_23andme_index_map.json",
       phase: "Loading PRS index map",
       key: "prsIndex",
     },
     {
-      url: "/data_files/prs_weights.json",
+      url: "/prs_weights.json",
       phase: "Loading PRS weights",
       key: "prsWeights",
     },
@@ -191,7 +191,7 @@ async function generateRealReport(
   // DEBUG: Check mutations structure
   const snpediaMutations = mutations.filter(m => m.source === 'snpedia');
   const snpediaMutationsWithGenotypes = mutations.filter(m => m.source === 'snpedia' && m.matched_genotype);
-  
+
   console.log(
     `Generated report with ${mutations.length} clinically significant mutations`
   );
@@ -199,11 +199,11 @@ async function generateRealReport(
   console.log(`  - From ${snpediaCount} SNPedia variants (genetic traits)`);
   console.log(`  - SNPedia mutations: ${snpediaMutations.length}`);
   console.log(`  - SNPedia mutations with genotypes: ${snpediaMutationsWithGenotypes.length}`);
-  
+
   // Test the exact UI filter
   const uiFiltered = mutations.filter((mutation) => mutation.source === "snpedia" && mutation.matched_genotype);
   console.log(`  - UI filter test result: ${uiFiltered.length}`);
-  
+
   if (uiFiltered.length > 0) {
     console.log(`  - First UI filtered mutation: ${uiFiltered[0].rsid} (${uiFiltered[0].user_allele})`);
   }

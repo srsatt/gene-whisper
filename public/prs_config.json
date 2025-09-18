@@ -1,0 +1,202 @@
+[
+    {
+        "name": "Beta-blocker survival risk",
+        "pgs_id": "PGS000718",
+        "filename": "PGS000718_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": 64,
+        "upper_cutoff": 66,
+        "lower_is_better": true 
+    },
+    {
+        "name": "ER-Negative Breast Cancer (Female)",
+        "pgs_id": "PGS004895",
+        "filename": "PGS004895_hmPOS_GRCh37.txt.gz",
+        "sex": "female",
+        "weight_type": "beta",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Prostate cancer (Male)",
+        "pgs_id": "PGS000067",
+        "filename": "PGS000067_hmPOS_GRCh37.txt.gz",
+        "sex": "male",
+        "weight_type": "log(HR)",
+        "lower_cutoff": -1.0,
+        "upper_cutoff": 1.0,
+        "lower_is_better": true
+    },
+    {
+        "name": "Migraine Disorder",
+        "pgs_id": "PGS001281",
+        "filename": "PGS001281_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Coronary artery disease",
+        "pgs_id": "PGS005152",
+        "filename": "PGS005152_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Non-alcoholic fatty liver disease",
+        "pgs_id": "PGS000872",
+        "filename": "PGS000872_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "High systolic blood pressure",
+        "pgs_id": "PGS005120",
+        "filename": "PGS005120_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -5.2,
+        "upper_cutoff": 5.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Colorectal cancer",
+        "pgs_id": "PGS004880",
+        "filename": "PGS004880_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.5,
+        "upper_cutoff": 0.5,
+        "lower_is_better": true
+    },
+    {
+        "name": "Gout",
+        "pgs_id": "PGS001248",
+        "filename": "PGS001248_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "HDL cholesterol",
+        "pgs_id": "PGS004627",
+        "filename": "PGS004627_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.5,
+        "upper_cutoff": 0.5,
+        "lower_is_better": false
+    },
+    {
+        "name": "Psoriasis",
+        "pgs_id": "PGS001312",
+        "filename": "PGS001312_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Type 2 diabetes",
+        "pgs_id": "PGS004870",
+        "filename": "PGS004870_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.6,
+        "upper_cutoff": 0.6,
+        "lower_is_better": true
+    },
+    {
+        "name": "Height",
+        "pgs_id": "PGS000758",
+        "filename": "PGS000758_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -2,
+        "upper_cutoff": 2,
+        "lower_is_better": false
+    },
+    {
+        "name": "Bone Mineral Density",
+        "pgs_id": "PGS000657",
+        "filename": "PGS000657_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": false
+    },
+    {
+        "name": "Asthma",
+        "pgs_id": "PGS001849",
+        "filename": "PGS001849_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "beta",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Deep vein thrombosis",
+        "pgs_id": "PGS001265",
+        "filename": "PGS001265_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.5,
+        "upper_cutoff": 0.5,
+        "lower_is_better": true
+    },
+    {
+        "name": "Aspirin use",
+        "pgs_id": "PGS001112",
+        "filename": "PGS001112_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": true
+    },
+    {
+        "name": "Alzheimer's disease",
+        "pgs_id": "PGS000334",
+        "filename": "PGS000334_hmPOS_GRCh37.txt.gz",
+        "sex": "both",
+        "weight_type": "NR",
+        "lower_cutoff": -0.65,
+        "upper_cutoff": 0.65,
+        "lower_is_better": true
+    },
+    {
+        "name": "Longevity (Years) (Male)",
+        "pgs_id": "PGS000319",
+        "filename": "PGS000319_hmPOS_GRCh37.txt.gz",
+        "sex": "male",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": false
+    },
+    {
+        "name": "Longevity (Years) (Female)",
+        "pgs_id": "PGS000318",
+        "filename": "PGS000318_hmPOS_GRCh37.txt.gz",
+        "sex": "female",
+        "weight_type": "NR",
+        "lower_cutoff": -0.2,
+        "upper_cutoff": 0.2,
+        "lower_is_better": false
+    }
+]

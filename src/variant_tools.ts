@@ -105,8 +105,8 @@ export async function loadClinvarDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
   // Use the provided fetch function or the default browser fetch
-  const fetcher = fetchWithProgress 
-    ? fetchWithProgress 
+  const fetcher = fetchWithProgress
+    ? fetchWithProgress
     : (url: string) => fetch(url);
 
   // Fetch all three required JSON files concurrently for better performance
@@ -115,9 +115,9 @@ export async function loadClinvarDatabase(
     rsidMapResponse,
     clustersResponse
   ] = await Promise.all([
-    fetcher('/data_files/clinvar.json', 'Loading ClinVar database'),
-    fetcher('/data_files/clinvar_rsid_to_cluster.json', 'Loading ClinVar RSID map'), // Assumed filename
-    fetcher('/data_files/clinvar_clusters.json', 'Loading ClinVar descriptions') // Assumed filename
+    fetcher('/clinvar.json', 'Loading ClinVar database'),
+    fetcher('/clinvar_description_map.json', 'Loading ClinVar RSID map'), // Assumed filename
+    fetcher('/clinvar_descriptions.json', 'Loading ClinVar descriptions') // Assumed filename
   ]);
 
   const clinvarArray = await clinvarResponse.json();
@@ -141,10 +141,10 @@ export async function loadClinvarDatabase(
   for (const variant of clinvarArray) {
     if (variant.rsid && variant.rsid.startsWith('rs')) {
       const lowerRsid = variant.rsid.toLowerCase();
-      
+
       // Find the cluster ID for the current variant's RSID
       const clusterId = rsidToClusterIdMap[lowerRsid];
-      
+
       // Use the cluster ID to find the generated description
       const generatedDescription = clusterId !== undefined ? clusterIdToDescriptionMap[clusterId] : variant.phenotype || 'No description available';
 
@@ -175,8 +175,8 @@ export async function loadSnpDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
   const response = fetchWithProgress
-    ? await fetchWithProgress('/data_files/snp-data-structured.json', 'Loading structured SNP data')
-    : await fetch('/data_files/snp-data-structured.json');
+    ? await fetchWithProgress('/snp-data-structured.json', 'Loading structured SNP data')
+    : await fetch('/snp-data-structured.json');
 
   const structuredData = await response.json();
   const snpDataMap: Record<string, DatabaseVariant> = {};
@@ -222,17 +222,17 @@ export async function loadSnpDatabase(
               gmaf = template.gmaf || "";
               orientation = template.orientation || "";
               stabilized = template.stabilizedorientation || "";
-              
+
               // Extract reference and alternative alleles from geno1, geno2, geno3
               if (template.geno1 && template.geno2) {
                 const geno1Match = template.geno1.match(/\(([ACGT]);([ACGT])\)/);
                 const geno2Match = template.geno2.match(/\(([ACGT]);([ACGT])\)/);
-                
+
                 if (geno1Match && geno2Match) {
                   // geno1 should be homozygous reference
                   const ref1 = geno1Match[1];
                   const ref2 = geno1Match[2];
-                  
+
                   if (ref1 === ref2) {
                     reference_allele = ref1;
                     // Find the alternative allele from geno2 (heterozygous)
@@ -243,12 +243,12 @@ export async function loadSnpDatabase(
                 }
               }
             }
-            
+
             // Get gene name from GWAS summary or other templates
             if (template.gene && !gene_name) {
               gene_name = template.gene;
             }
-            
+
             // Collect PMIDs
             if (template.pmid) {
               pmids.push(template.pmid);
@@ -297,11 +297,11 @@ export async function loadSnpDatabase(
       // Use the key as rsid (convert Rs12345 -> rs12345)
       finalRsid = snpKey.charAt(0).toLowerCase() + snpKey.slice(1);
     }
-    
+
     // Only add SNPs that have rsid
     if (finalRsid && finalRsid.startsWith('rs')) {
       const rsidLower = finalRsid.toLowerCase();
-      
+
       snpDataMap[rsidLower] = {
         rsid: finalRsid,
         reference_allele: reference_allele,
@@ -341,7 +341,7 @@ export interface DatabaseVariant {
   pmids?: string;
   diseases?: string;
   description?: string;
-  
+
   // Enhanced SNPedia structured data fields
   chromosome?: string;
   gmaf?: string;
@@ -403,11 +403,11 @@ export interface ResultVariant extends DatabaseVariant {
 function handleOrientation(alleles: string, orientation?: string, stabilized?: string): string {
   // If either orientation or stabilization is "minus", flip the alleles
   const needsFlip = orientation === 'minus' || stabilized === 'minus';
-  
+
   if (!needsFlip) {
     return alleles;
   }
-  
+
   // Complement mapping for DNA bases
   const complement: Record<string, string> = {
     'A': 'T',
@@ -418,7 +418,7 @@ function handleOrientation(alleles: string, orientation?: string, stabilized?: s
     'D': 'D', // Deletion stays the same
     '-': '-'  // No call stays the same
   };
-  
+
   return alleles.split('').map(allele => complement[allele] || allele).join('');
 }
 
@@ -441,7 +441,7 @@ function getGenotypeCode(actual: string, refAllele: string, altAllele: string, o
 
   // Handle orientation and stabilization
   const alleles = handleOrientation(actual, orientation, stabilized);
-  
+
   // Homozygous if single allele provided (e.g., from X or Y chromosome)
   let normalizedAlleles = alleles;
   if (normalizedAlleles.length === 1) {
@@ -477,32 +477,32 @@ function getGenotypeCode(actual: string, refAllele: string, altAllele: string, o
  * Finds the matching genotype from structured data based on user's alleles.
  */
 function findMatchingGenotype(
-  userAlleles: string, 
-  genotypes: StructuredGenotype[], 
-  orientation?: string, 
+  userAlleles: string,
+  genotypes: StructuredGenotype[],
+  orientation?: string,
   stabilized?: string
 ): StructuredGenotype | null {
   // Apply orientation flipping for genotype matching
   // When orientation/stabilization is minus, we need to flip the user's alleles
   const processedAlleles = handleOrientation(userAlleles, orientation, stabilized);
-  
+
   // Normalize to 2 characters if single character (X/Y chromosome)
   let normalizedAlleles = processedAlleles;
   if (normalizedAlleles.length === 1) {
     normalizedAlleles = normalizedAlleles + normalizedAlleles;
   }
-  
+
   if (normalizedAlleles.length !== 2) {
     return null;
   }
-  
+
   const [allele1, allele2] = normalizedAlleles.split('');
-  
+
   // Find matching genotype - order doesn't matter
   for (const genotype of genotypes) {
     const genoAllele1 = genotype.allele1;
     const genoAllele2 = genotype.allele2;
-    
+
     if ((allele1 === genoAllele1 && allele2 === genoAllele2) ||
         (allele1 === genoAllele2 && allele2 === genoAllele1)) {
       return genotype;
@@ -543,8 +543,8 @@ function getMatchingVariant(
   const hasVariantAllele = genotypeCode > 0;
   const hasMatchedGenotype = matchedGenotype !== undefined;
   const hasSignificantGenotype = matchedGenotype && parseFloat(matchedGenotype.magnitude) > 0;
-  
-  
+
+
   let shouldInclude = false;
   if (source === 'clinvar') {
     // ClinVar: only include if user has alternative allele
@@ -553,7 +553,7 @@ function getMatchingVariant(
     // SNPedia: include if we have a matching genotype OR if user has alternative allele
     shouldInclude = hasMatchedGenotype || hasVariantAllele;
   }
-  
+
   if (shouldInclude) {
     // Create a new object with the database info, user's genotype, and source
     const result: ResultVariant = {
@@ -635,9 +635,9 @@ export function findSharedVariants(
  */
 function inferEvidenceLevel(magnitude: string): string {
   const mag = parseFloat(magnitude);
-  
+
   if (mag >= 5) return "4+ Stars"; // Very high significance
-  if (mag >= 3) return "3 Stars";  // High significance  
+  if (mag >= 3) return "3 Stars";  // High significance
   if (mag >= 2) return "2 Stars";  // Moderate significance
   if (mag >= 1) return "1 Star";   // Low significance
   return "0 Stars";                // No significance
@@ -651,19 +651,19 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
     .filter(variant => {
       // For SNPedia variants, require either a matched genotype or basic condition info
       if (variant.source === 'snpedia') {
-        const hasMatchedGenotype = variant.matched_genotype && 
+        const hasMatchedGenotype = variant.matched_genotype &&
           parseFloat(variant.matched_genotype.magnitude) > 0;
         const hasBasicInfo = variant.diseases || variant.description;
         return hasMatchedGenotype || hasBasicInfo;
       }
-      
+
       // For ClinVar variants, require phenotype and gene
       if (variant.source === 'clinvar') {
         const hasCondition = variant.phenotype;
         const hasGene = variant.gene_name && variant.gene_name.trim() !== '';
         return hasCondition && hasGene;
       }
-      
+
       return false; // Unknown source
     })
     .map(variant => {
@@ -680,7 +680,7 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
       let summary = '';
       let repute = '';
       let magnitude = '';
-      
+
       if (variant.source === 'clinvar') {
         phenotype = variant.phenotype || 'Genetic variant';
       } else if (variant.matched_genotype) {

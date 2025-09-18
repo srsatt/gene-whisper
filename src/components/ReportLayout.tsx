@@ -659,7 +659,7 @@ function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
       case "low":
         return "Low Risk";
       case "normal":
-        return "Normal Risk";
+        return "Not Detected";
       case "high":
         return "High Risk";
       default:
@@ -960,8 +960,8 @@ export default function ReportLayout({
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer"
                         >
                           {showNormalRisk
-                            ? `Collapse (${normalRiskResults.length} Normal Risk)`
-                            : `Expand (${normalRiskResults.length} Normal Risk)`}
+                            ? `Collapse`
+                            : `Expand (${normalRiskResults.length} more)`}
                         </button>
                       </div>
                     )}

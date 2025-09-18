@@ -17,3 +17,9 @@ git lfs pull
 ```
 
 These commands will initialize Git LFS and download any large files associated with the repository.
+
+
+Than run
+```
+npm dev run
+```

@@ -50,8 +50,17 @@ async function loadAllData(
   console.log("Loading all data files in parallel...");
 
   // Use static subdomain for better CDN performance and caching
+  // Handle different hosting environments
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-    ? `https://static.${window.location.hostname}` 
+    ? (() => {
+        const hostname = window.location.hostname;
+        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        if (hostname.endsWith('.pages.dev')) {
+          return window.location.origin;
+        }
+        // For custom domains, use static subdomain
+        return `https://static.${hostname}`;
+      })()
     : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
 
   // Define all file URLs and their corresponding phase names

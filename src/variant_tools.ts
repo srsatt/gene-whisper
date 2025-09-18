@@ -110,9 +110,18 @@ export async function loadClinvarDatabase(
     : (url: string) => fetch(url);
 
   // Use static subdomain for better CDN performance and caching
+  // Handle different hosting environments
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-    ? `https://static.${window.location.hostname}` 
-    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+    ? (() => {
+        const hostname = window.location.hostname;
+        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        if (hostname.endsWith('.pages.dev')) {
+          return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+        }
+        // For custom domains, use static subdomain
+        return `https://static.${hostname}`;
+      })()
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
 
   // Fetch all three required JSON files concurrently for better performance
   const [
@@ -180,9 +189,18 @@ export async function loadSnpDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
   // Use static subdomain for better CDN performance and caching
+  // Handle different hosting environments
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-    ? `https://static.${window.location.hostname}` 
-    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+    ? (() => {
+        const hostname = window.location.hostname;
+        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        if (hostname.endsWith('.pages.dev')) {
+          return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+        }
+        // For custom domains, use static subdomain
+        return `https://static.${hostname}`;
+      })()
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
     
   const response = fetchWithProgress
     ? await fetchWithProgress(`${staticBaseUrl}/data/snp-data-structured.json`, 'Loading structured SNP data')

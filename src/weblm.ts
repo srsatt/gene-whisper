@@ -63,7 +63,15 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
   // Use static subdomain for better CDN performance and caching
   // In production: static.yourdomain.com, in development: localhost:5173
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-    ? `https://static.${window.location.hostname}` 
+    ? (() => {
+        const hostname = window.location.hostname;
+        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        if (hostname.endsWith('.pages.dev')) {
+          return baseUrl;
+        }
+        // For custom domains, use static subdomain
+        return `https://static.${hostname}`;
+      })()
     : baseUrl
   
   // Use our converted II-Medical-8B model with proper Qwen3-8B WASM from static subdomain

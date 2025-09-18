@@ -16,7 +16,8 @@ export default function ExtendedDemographicsModal({
   extendedDemographics,
   onSave,
 }: ExtendedDemographicsModalProps) {
-  const [formData, setFormData] = useState<ExtendedDemographics>(extendedDemographics);
+  const [formData, setFormData] =
+    useState<ExtendedDemographics>(extendedDemographics);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -42,15 +43,15 @@ export default function ExtendedDemographicsModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+      <div
+        className="fixed inset-0 bg-black opacity-50 transition-opacity"
         onClick={handleClose}
-        onKeyDown={(e) => e.key === 'Escape' && handleClose()}
+        onKeyDown={(e) => e.key === "Escape" && handleClose()}
         role="button"
         tabIndex={-1}
         aria-label="Close modal"
       />
-      
+
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -61,7 +62,8 @@ export default function ExtendedDemographicsModal({
                 Extended Demographics
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Provide additional information to enhance your medical consultations
+                Provide additional information to enhance your medical
+                consultations
               </p>
             </div>
             <button
@@ -100,7 +102,8 @@ export default function ExtendedDemographicsModal({
           {/* Footer */}
           <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
             <div className="text-sm text-gray-500">
-              This information will be used to provide more personalized medical insights
+              This information will be used to provide more personalized medical
+              insights
             </div>
             <div className="flex space-x-3">
               <button

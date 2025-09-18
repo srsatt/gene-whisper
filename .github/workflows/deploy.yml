@@ -68,6 +68,7 @@ jobs:
           cp -r dist/assets dist-pages/
           cp dist/index.html dist-pages/
           cp -r dist/favicon dist-pages/ 2>/dev/null || true
+          cp -r dist/bg dist-pages/ 2>/dev/null || true
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

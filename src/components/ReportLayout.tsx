@@ -122,7 +122,7 @@ function StructuredMutationCard({
   const allTags = {
     medicines: new Set<string>(),
     topics: new Set<string>(),
-    conditions: new Set<string>()
+    conditions: new Set<string>(),
   };
 
   // Add SNP-level tags from mutation object
@@ -155,30 +155,30 @@ function StructuredMutationCard({
   const combinedTags = {
     medicines: Array.from(allTags.medicines),
     topics: Array.from(allTags.topics),
-    conditions: Array.from(allTags.conditions)
+    conditions: Array.from(allTags.conditions),
   };
 
   // Get color based on repute
   const getReputeColor = (repute: string) => {
     switch (repute.toLowerCase()) {
-      case 'good':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'bad':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'unknown':
+      case "good":
+        return "bg-green-100 text-green-800";
+      case "bad":
+        return "bg-red-100 text-red-800";
+      case "unknown":
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   // Get magnitude color
   const getMagnitudeColor = (magnitude: string) => {
     const mag = parseFloat(magnitude);
-    if (mag >= 5) return 'bg-red-100 text-red-800';
-    if (mag >= 3) return 'bg-orange-100 text-orange-800';
-    if (mag >= 2) return 'bg-yellow-100 text-yellow-800';
-    if (mag >= 1) return 'bg-blue-100 text-blue-800';
-    return 'bg-gray-100 text-gray-800';
+    if (mag >= 5) return "bg-red-100 text-red-800";
+    if (mag >= 3) return "bg-orange-100 text-orange-800";
+    if (mag >= 2) return "bg-yellow-100 text-yellow-800";
+    if (mag >= 1) return "bg-blue-100 text-blue-800";
+    return "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -209,18 +209,31 @@ function StructuredMutationCard({
                 </span>
               )}
               <div className="flex items-center gap-1">
-                <span className={cn(
-                  "px-2 py-1 text-xs rounded font-medium border",
-                  getReputeColor(genotype.repute)
-                )}>
+                <span
+                  className={cn(
+                    "px-2 py-1 text-xs rounded font-medium",
+                    getReputeColor(genotype.repute)
+                  )}
+                >
                   {genotype.repute}
                 </span>
-                <span className={cn(
-                  "px-2 py-1 text-xs rounded font-medium",
-                  getMagnitudeColor(genotype.magnitude)
-                )}>
+                <span
+                  className={cn(
+                    "px-2 py-1 text-xs rounded font-medium",
+                    getMagnitudeColor(genotype.magnitude)
+                  )}
+                >
                   Magnitude {genotype.magnitude}
                 </span>
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => onDiscuss(mutation.rsid)}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  Discuss
+                </button>
               </div>
             </div>
 
@@ -238,7 +251,9 @@ function StructuredMutationCard({
             {/* SNP Description */}
             {snpDescription && (
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-1">SNP Information:</h4>
+                <h4 className="text-xs font-medium text-gray-700 mb-1">
+                  SNP Information:
+                </h4>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {snpDescription}
                 </p>
@@ -246,9 +261,13 @@ function StructuredMutationCard({
             )}
 
             {/* Tags Section */}
-            {(combinedTags.conditions.length > 0 || combinedTags.topics.length > 0 || combinedTags.medicines.length > 0) && (
+            {(combinedTags.conditions.length > 0 ||
+              combinedTags.topics.length > 0 ||
+              combinedTags.medicines.length > 0) && (
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Related Tags:</h4>
+                <h4 className="text-xs font-medium text-gray-700 mb-2">
+                  Related Tags:
+                </h4>
                 <div className="flex flex-wrap gap-1">
                   {combinedTags.conditions.slice(0, 3).map((condition) => (
                     <span
@@ -274,29 +293,28 @@ function StructuredMutationCard({
                       {medicine}
                     </span>
                   ))}
-                  {(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) > 8 && (
+                  {combinedTags.conditions.length +
+                    combinedTags.topics.length +
+                    combinedTags.medicines.length >
+                    8 && (
                     <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded border border-gray-200">
-                      +{(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) - 8} more
+                      +
+                      {combinedTags.conditions.length +
+                        combinedTags.topics.length +
+                        combinedTags.medicines.length -
+                        8}{" "}
+                      more
                     </span>
                   )}
                 </div>
               </div>
             )}
           </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start">
-            <button
-              type="button"
-              onClick={() => onDiscuss(mutation.rsid)}
-              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              Discuss
-            </button>
-          </div>
         </div>
       </div>
 
       {/* Genotype Information */}
-      <div className="p-4 bg-gray-50">
+      <div className="p-4 bg-gray-50 rounded-b-lg">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-500">Your Genotype:</span>
@@ -307,7 +325,9 @@ function StructuredMutationCard({
           <div>
             <span className="text-gray-500">Frequency:</span>
             <div className="text-gray-900">
-              {mutation.gmaf ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%` : 'Unknown'}
+              {mutation.gmaf
+                ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%`
+                : "Unknown"}
             </div>
           </div>
           <div>
@@ -316,16 +336,20 @@ function StructuredMutationCard({
           </div>
           <div>
             <span className="text-gray-500">Position:</span>
-            <div className="text-gray-900">{mutation.position?.toLocaleString()}</div>
+            <div className="text-gray-900">
+              {mutation.position?.toLocaleString()}
+            </div>
           </div>
         </div>
 
         {/* Orientation info if present */}
-        {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
+        {(mutation.orientation === "minus" ||
+          mutation.stabilized === "minus") && (
           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
             <span className="text-yellow-800">
-              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''}
-              {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
+              ⚠️ Orientation adjusted:{" "}
+              {mutation.orientation === "minus" ? "Orientation: minus" : ""}
+              {mutation.stabilized === "minus" ? " Stabilized: minus" : ""}
             </span>
           </div>
         )}
@@ -391,7 +415,10 @@ function EnhancedMutationCard({
         // Get the first meaningful paragraph by combining sentences
         for (const paragraph of section.paragraphs) {
           if (paragraph.sentences && paragraph.sentences.length > 0) {
-            const combinedText = paragraph.sentences.map(s => s.text).join(' ').trim();
+            const combinedText = paragraph.sentences
+              .map((s) => s.text)
+              .join(" ")
+              .trim();
             if (combinedText.length > 20) {
               snpDescription = combinedText;
               break;
@@ -407,7 +434,7 @@ function EnhancedMutationCard({
   const allTags = {
     medicines: new Set<string>(),
     topics: new Set<string>(),
-    conditions: new Set<string>()
+    conditions: new Set<string>(),
   };
 
   // Add SNP-level tags from mutation object (from DatabaseVariant)
@@ -440,7 +467,7 @@ function EnhancedMutationCard({
   const combinedTags = {
     medicines: Array.from(allTags.medicines),
     topics: Array.from(allTags.topics),
-    conditions: Array.from(allTags.conditions)
+    conditions: Array.from(allTags.conditions),
   };
 
   return (
@@ -488,7 +515,9 @@ function EnhancedMutationCard({
             {/* SNP Description */}
             {snpDescription && (
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-1">SNP Information:</h4>
+                <h4 className="text-xs font-medium text-gray-700 mb-1">
+                  SNP Information:
+                </h4>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   {snpDescription}
                 </p>
@@ -496,9 +525,13 @@ function EnhancedMutationCard({
             )}
 
             {/* Tags Section */}
-            {(combinedTags.conditions.length > 0 || combinedTags.topics.length > 0 || combinedTags.medicines.length > 0) && (
+            {(combinedTags.conditions.length > 0 ||
+              combinedTags.topics.length > 0 ||
+              combinedTags.medicines.length > 0) && (
               <div className="mb-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Related Tags:</h4>
+                <h4 className="text-xs font-medium text-gray-700 mb-2">
+                  Related Tags:
+                </h4>
                 <div className="flex flex-wrap gap-1">
                   {combinedTags.conditions.slice(0, 3).map((condition) => (
                     <span
@@ -524,9 +557,17 @@ function EnhancedMutationCard({
                       {medicine}
                     </span>
                   ))}
-                  {(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) > 8 && (
+                  {combinedTags.conditions.length +
+                    combinedTags.topics.length +
+                    combinedTags.medicines.length >
+                    8 && (
                     <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded border border-gray-200">
-                      +{(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) - 8} more
+                      +
+                      {combinedTags.conditions.length +
+                        combinedTags.topics.length +
+                        combinedTags.medicines.length -
+                        8}{" "}
+                      more
                     </span>
                   )}
                 </div>
@@ -551,13 +592,15 @@ function EnhancedMutationCard({
           <div>
             <span className="text-gray-500">Your Alleles:</span>
             <div className="font-mono text-gray-900">
-              {mutation.user_allele || 'Unknown'}
+              {mutation.user_allele || "Unknown"}
             </div>
           </div>
           <div>
             <span className="text-gray-500">Frequency:</span>
             <div className="text-gray-900">
-              {mutation.gmaf ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%` : 'Unknown'}
+              {mutation.gmaf
+                ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%`
+                : "Unknown"}
             </div>
           </div>
           <div>
@@ -566,7 +609,9 @@ function EnhancedMutationCard({
           </div>
           <div>
             <span className="text-gray-500">Position:</span>
-            <div className="text-gray-900">{mutation.position?.toLocaleString()}</div>
+            <div className="text-gray-900">
+              {mutation.position?.toLocaleString()}
+            </div>
           </div>
         </div>
 
@@ -605,7 +650,10 @@ function EnhancedMutationCard({
             </h4>
             <div className="text-xs text-gray-600">
               {lists.slice(0, 3).map((item, index) => (
-                <div key={`list-item-${index}-${item.substring(0, 10)}`} className="truncate">
+                <div
+                  key={`list-item-${index}-${item.substring(0, 10)}`}
+                  className="truncate"
+                >
                   • {item}
                 </div>
               ))}
@@ -619,11 +667,13 @@ function EnhancedMutationCard({
         )}
 
         {/* Orientation info if present */}
-        {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
+        {(mutation.orientation === "minus" ||
+          mutation.stabilized === "minus") && (
           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
             <span className="text-yellow-800">
-              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''}
-              {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
+              ⚠️ Orientation adjusted:{" "}
+              {mutation.orientation === "minus" ? "Orientation: minus" : ""}
+              {mutation.stabilized === "minus" ? " Stabilized: minus" : ""}
             </span>
           </div>
         )}
@@ -954,9 +1004,9 @@ export default function ReportLayout({
 
                     {hasNormalRisk && (
                       <div className="flex justify-center pt-6 mb-16">
-                      <button
-                        type="button"
-                        onClick={toggleNormalRisk}
+                        <button
+                          type="button"
+                          onClick={toggleNormalRisk}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer"
                         >
                           {showNormalRisk
@@ -973,9 +1023,9 @@ export default function ReportLayout({
             {/* Monogenic Score Section */}
             {allMutations.length > 0 && (
               <div className="">
-              <button
-                type="button"
-                onClick={toggleSection}
+                <button
+                  type="button"
+                  onClick={toggleSection}
                   className={cn(
                     "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm cursor-pointer",
                     sectionExpanded ? "rounded-t-lg" : "rounded-lg"
@@ -1025,14 +1075,20 @@ export default function ReportLayout({
                   <div>
                     <div className="bg-white rounded-b-lg border border-t-0 border-purple-100 p-4 shadow-sm">
                       <div className="grid gap-4">
-                        {visibleMutations.filter((mutation) => mutation.source === "snpedia" && mutation.matched_genotype).map((mutation) => (
-                          <MutationCard
-                            key={mutation.rsid}
-                            mutation={mutation}
-                            onDiscuss={onDiscuss}
-                            isSelected={mutation.rsid === selectedMutationId}
-                          />
-                        ))}
+                        {visibleMutations
+                          .filter(
+                            (mutation) =>
+                              mutation.source === "snpedia" &&
+                              mutation.matched_genotype
+                          )
+                          .map((mutation) => (
+                            <MutationCard
+                              key={mutation.rsid}
+                              mutation={mutation}
+                              onDiscuss={onDiscuss}
+                              isSelected={mutation.rsid === selectedMutationId}
+                            />
+                          ))}
                       </div>
                     </div>
 

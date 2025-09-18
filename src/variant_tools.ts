@@ -109,15 +109,20 @@ export async function loadClinvarDatabase(
     ? fetchWithProgress
     : (url: string) => fetch(url);
 
+  // Use static subdomain for better CDN performance and caching
+  const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? `https://static.${window.location.hostname}` 
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+
   // Fetch all three required JSON files concurrently for better performance
   const [
     clinvarResponse,
     rsidMapResponse,
     clustersResponse
   ] = await Promise.all([
-    fetcher('/clinvar.json', 'Loading ClinVar database'),
-    fetcher('/clinvar_description_map.json', 'Loading ClinVar RSID map'), // Assumed filename
-    fetcher('/clinvar_descriptions.json', 'Loading ClinVar descriptions') // Assumed filename
+    fetcher(`${staticBaseUrl}/data/clinvar.json`, 'Loading ClinVar database'),
+    fetcher(`${staticBaseUrl}/data/clinvar_description_map.json`, 'Loading ClinVar RSID map'), // Assumed filename
+    fetcher(`${staticBaseUrl}/data/clinvar_descriptions.json`, 'Loading ClinVar descriptions') // Assumed filename
   ]);
 
   const clinvarArray = await clinvarResponse.json();
@@ -174,9 +179,14 @@ export async function loadClinvarDatabase(
 export async function loadSnpDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
+  // Use static subdomain for better CDN performance and caching
+  const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? `https://static.${window.location.hostname}` 
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+    
   const response = fetchWithProgress
-    ? await fetchWithProgress('/snp-data-structured.json', 'Loading structured SNP data')
-    : await fetch('/snp-data-structured.json');
+    ? await fetchWithProgress(`${staticBaseUrl}/data/snp-data-structured.json`, 'Loading structured SNP data')
+    : await fetch(`${staticBaseUrl}/data/snp-data-structured.json`);
 
   const structuredData = await response.json();
   const snpDataMap: Record<string, DatabaseVariant> = {};

@@ -8,7 +8,7 @@ describe('Mutation Card Data Extraction', () => {
 
   beforeAll(async () => {
     // Load the structured data directly from file
-    const dataPath = path.join(process.cwd(), 'public', 'snp-data-structured.json');
+    const dataPath = path.join(process.cwd(), 'public', 'data', 'snp-data-structured.json');
     const rawData = fs.readFileSync(dataPath, 'utf8');
     structuredData = JSON.parse(rawData);
 

@@ -163,7 +163,7 @@ export class CustomWebLLM implements LanguageModelV2 {
       // NOTE: Do not pass tools/tool_choice for models that don't support it (avoids UnsupportedModelIdError)
       stream: true,
       temperature: temperature ?? 0.1,
-      max_tokens: maxOutputTokens ?? 512,
+      max_tokens: maxOutputTokens ?? 1024,
       top_p: topP,
       presence_penalty: presencePenalty,
       frequency_penalty: frequencyPenalty,

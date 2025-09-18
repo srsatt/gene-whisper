@@ -49,20 +49,25 @@ async function loadAllData(
 ): Promise<LoadedData> {
   console.log("Loading all data files in parallel...");
 
+  // Use static subdomain for better CDN performance and caching
+  const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? `https://static.${window.location.hostname}` 
+    : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+
   // Define all file URLs and their corresponding phase names
   const fileLoads = [
     {
-      url: "/prs_config.json",
+      url: `${staticBaseUrl}/data/prs_config.json`,
       phase: "Loading PRS configurations",
       key: "prsConfig",
     },
     {
-      url: "/prs_23andme_index_map.json",
+      url: `${staticBaseUrl}/data/prs_23andme_index_map.json`,
       phase: "Loading PRS index map",
       key: "prsIndex",
     },
     {
-      url: "/prs_weights.json",
+      url: `${staticBaseUrl}/data/prs_weights.json`,
       phase: "Loading PRS weights",
       key: "prsWeights",
     },
@@ -71,7 +76,7 @@ async function loadAllData(
   // Add demo file if needed
   if (includeDemoFile) {
     fileLoads.push({
-      url: "/demo_genome.txt",
+      url: `${staticBaseUrl}/data/demo_genome.txt`,
       phase: "Loading demo file",
       key: "demoFile",
     });

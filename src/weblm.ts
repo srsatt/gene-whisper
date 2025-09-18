@@ -60,15 +60,21 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
   const modelUrl = modelPath.startsWith('http') ? modelPath : `${baseUrl}${modelPath.startsWith('/') ? modelPath : '/' + modelPath}`
   let modelId = config?.modelId ?? 'II-Medical-8B-q4f16_1-MLC'
   
-  // Use our converted II-Medical-8B model with proper Qwen3-8B WASM
-  const modelBaseUrl = `${baseUrl}/II-Medical-8B-q4f16_1-MLC/`
+  // Use static subdomain for better CDN performance and caching
+  // In production: static.yourdomain.com, in development: localhost:5173
+  const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? `https://static.${window.location.hostname}` 
+    : baseUrl
+  
+  // Use our converted II-Medical-8B model with proper Qwen3-8B WASM from static subdomain
+  const modelBaseUrl = `${staticBaseUrl}/II-Medical-8B-q4f16_1-MLC/`
   const appConfig = {
     model_list: [
       {
         model: modelBaseUrl,
         model_id: modelId,
-        // Use v0_2_48 compatible Qwen3-8B WASM (perfect match!)
-        model_lib: `${baseUrl}/wasm/Qwen3-8B-q4f16_1-ctx4k_cs1k-webgpu.wasm`,
+        // Use v0_2_48 compatible Qwen3-8B WASM from static subdomain (served from R2)
+        model_lib: `${staticBaseUrl}/wasm/Qwen3-8B-q4f16_1-ctx4k_cs1k-webgpu.wasm`,
         vram_required_MB: 5000,
         low_resource_required: false,
         buffer_size_required_bytes: 4294967296,
@@ -79,6 +85,7 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
   
   console.log('WebLLM Medical Model Config:', { 
     baseUrl, 
+    staticBaseUrl,
     modelPath,
     modelUrl, 
     modelId, 
@@ -100,7 +107,7 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
   
   for (const filename of filesToTest) {
     try {
-      const response = await fetch(`${baseUrl}/II-Medical-8B-q4f16_1-MLC/${filename}`)
+      const response = await fetch(`${staticBaseUrl}/II-Medical-8B-q4f16_1-MLC/${filename}`)
       console.log(`${filename} status:`, response.status, response.headers.get('content-type'))
       if (!response.ok) {
         const text = await response.text()

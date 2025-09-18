@@ -1,16 +1,18 @@
 *.bin filter=lfs diff=lfs merge=lfs -text
 *.safetensors filter=lfs diff=lfs merge=lfs -text
 *.wasm filter=lfs diff=lfs merge=lfs -text
-data_files/*.json filter=lfs diff=lfs merge=lfs -text
-
-# Large JSON files in public directory
-public/clinvar.json filter=lfs diff=lfs merge=lfs -text
-public/clinvar_descriptions.json filter=lfs diff=lfs merge=lfs -text
-public/clinvar_description_map.json filter=lfs diff=lfs merge=lfs -text
-public/snp-data.json filter=lfs diff=lfs merge=lfs -text
-public/snp-data-structured.json filter=lfs diff=lfs merge=lfs -text
-public/snpedia.json filter=lfs diff=lfs merge=lfs -text
-public/prs_weights.json filter=lfs diff=lfs merge=lfs -text
-public/prs_23andme_index_map.json filter=lfs diff=lfs merge=lfs -text
-public/II-Medical-8B-q4f16_1-MLC/tokenizer.json filter=lfs diff=lfs merge=lfs -text
-public/II-Medical-8B-q4f16_1-MLC/vocab.json filter=lfs diff=lfs merge=lfs -text
+# All JSON files in public/data directory
+public/data/*.json filter=lfs diff=lfs merge=lfs -text
+# Large JSON files in public/data directory
+public/data/clinvar.json filter=lfs diff=lfs merge=lfs -text
+public/data/clinvar_descriptions.json filter=lfs diff=lfs merge=lfs -text
+public/data/clinvar_description_map.json filter=lfs diff=lfs merge=lfs -text
+public/data/snp-data.json filter=lfs diff=lfs merge=lfs -text
+public/data/snp-data-structured.json filter=lfs diff=lfs merge=lfs -text
+public/data/snpedia.json filter=lfs diff=lfs merge=lfs -text
+public/data/prs_weights.json filter=lfs diff=lfs merge=lfs -text
+public/data/prs_23andme_index_map.json filter=lfs diff=lfs merge=lfs -text
+public/data/prs_config.json filter=lfs diff=lfs merge=lfs -text
+# Model files
+public/II-Medical-8B-q4f16_1-MLC/**/*.json filter=lfs diff=lfs merge=lfs -text
+public/II-Medical-8B-q4f16_1-MLC/**/*.bin filter=lfs diff=lfs merge=lfs -text

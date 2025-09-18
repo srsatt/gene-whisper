@@ -238,7 +238,7 @@ export function AssistantThreadWithTools({
 					// Collect hidden context messages (role: "context") to inject into the system prompt,
 					// and exclude them from the visible/user/assistant message list sent to the model.
 					const hiddenContextTexts = messages
-						.filter((msg) => (msg as any).role === "context")
+						.filter((msg) => (msg as { role: string }).role === "context")
 						.map((msg) =>
 							msg.content
 								.map((part) => (part.type === "text" ? part.text : ""))
@@ -247,7 +247,7 @@ export function AssistantThreadWithTools({
 						.filter((t) => t.trim().length > 0);
 
 					const formattedMessages = messages
-						.filter((msg) => (msg as any).role !== "context")
+						.filter((msg) => (msg as { role: string }).role !== "context")
 						.map((msg) => ({
 							role: msg.role,
 							content: msg.content
@@ -456,6 +456,14 @@ Use this information to provide more personalized and relevant medical insights.
 	const runtime = useLocalRuntime(SdkToolAdapter);
 	runtimeRef.current = runtime;
 
+	// Force runtime reset when resetCounter changes
+	useEffect(() => {
+		if (resetCounter > 0) {
+			console.log("🔄 Debug - Runtime reset triggered, clearing all messages");
+			// The runtime should automatically clear when the component re-renders with new keys
+		}
+	}, [resetCounter]);
+
 	// Track whether context has changed since the last user message
 	const contextChangedRef = useRef(false);
 
@@ -465,11 +473,16 @@ Use this information to provide more personalized and relevant medical insights.
 
 		const unsubscribeSetContext = eventEmitter.on("set-context", (context) => {
 			console.log("🔍 Debug - Setting context:", context);
+			console.log("🔄 Debug - Resetting chat completely for new context");
+			
+			// Clear the current context
 			currentContextRef.current = context;
-			// Reset the chat on context change for a fresh conversation tied to the new context.
-			// Recreate the runtime by bumping the resetCounter; this clears the thread and cancels any in-flight runs.
+			
+			// Force a complete reset by incrementing the counter
+			// This will recreate the runtime and clear all messages
 			setResetCounter((c) => c + 1);
-			// Ensure no banner text is prepended to the user's next message
+			
+			// Reset context change flag
 			contextChangedRef.current = false;
 		});
 
@@ -494,9 +507,9 @@ Use this information to provide more personalized and relevant medical insights.
 	}, [eventEmitter]);
 
 	return (
-		<AssistantRuntimeProvider runtime={runtime}>
+		<AssistantRuntimeProvider key={`provider-${resetCounter}`} runtime={runtime}>
 			<div className="h-full flex flex-col">
-				<ThreadPrimitive.Root className="flex h-full flex-col bg-white">
+				<ThreadPrimitive.Root key={`thread-${resetCounter}`} className="flex h-full flex-col bg-white">
 					<div className="border-b border-gray-200 bg-gray-50 p-3">
 						<h3 className="text-sm font-semibold text-gray-900">
 							Medical AI Assistant

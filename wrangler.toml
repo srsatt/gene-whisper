@@ -1,0 +1,54 @@
+name = "gene-whisper"
+main = "src/index.js"
+compatibility_date = "2023-12-01"
+
+[env.production]
+name = "gene-whisper-prod"
+routes = [
+  { pattern = "genewhisper.srsatt.dev/*", zone_name = "srsatt.dev" }
+]
+
+# Static assets worker for subdomain
+[env.production.services]
+static = { name = "gene-whisper-static-prod" }
+
+[env.development]
+name = "gene-whisper-dev"
+
+[env.development.services]
+static = { name = "gene-whisper-static-dev" }
+
+# Static assets worker configuration
+[[workers]]
+name = "gene-whisper-static-prod"
+main = "src/static.js"
+compatibility_date = "2023-12-01"
+
+[workers.env.production]
+routes = [
+  { pattern = "static.genewhisper.srsatt.dev/*", zone_name = "srsatt.dev" }
+]
+
+[[workers.env.production.r2_buckets]]
+binding = "STATIC_ASSETS"
+bucket_name = "gene-whisper-static"
+preview_bucket_name = "gene-whisper-static-preview"
+
+[[workers]]
+name = "gene-whisper-static-dev"
+main = "src/static.js"
+compatibility_date = "2023-12-01"
+
+[[workers.env.development.r2_buckets]]
+binding = "STATIC_ASSETS"
+bucket_name = "gene-whisper-static-dev"
+preview_bucket_name = "gene-whisper-static-dev-preview"
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+
+# Static assets configuration
+[site]
+bucket = "./dist"

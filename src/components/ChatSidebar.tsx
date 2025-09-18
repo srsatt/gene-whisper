@@ -161,29 +161,114 @@ export default function ChatSidebar({
 
 			if (item.type === "mutation") {
 				const mutation = item.data;
+				
+				// Extract SNP description from raw data if available
+				let snpDescription = "";
+				if (mutation.raw) {
+					try {
+						const rawData = JSON.parse(mutation.raw);
+						if (rawData.description && rawData.description.trim().length > 20) {
+							snpDescription = rawData.description.trim();
+						}
+					} catch {
+						// Ignore parsing errors
+					}
+				}
+				
+				// Create enhanced context with all available data
+				const contextData: any = {
+					rsid: mutation.rsid,
+					gene_name: mutation.gene_name,
+					phenotype: mutation.phenotype,
+					evidence_level: mutation.evidence_level,
+					genotype: mutation.genotype,
+					user_allele: mutation.user_allele,
+					genotype_explanation: {
+						code: mutation.genotype,
+						meaning: mutation.genotype === 1 
+							? "Heterozygous (one copy of the alternative allele)" 
+							: "Homozygous (two copies of the alternative allele)",
+						user_alleles: mutation.user_allele || "Unknown"
+					},
+					chrom: mutation.chrom,
+					position: mutation.position,
+					reference_allele: mutation.reference_allele,
+					alternative_allele: mutation.alternative_allele,
+					source: mutation.source,
+					frequency: mutation.gmaf ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%` : 'Unknown',
+				};
+				
+				// Add SNP description if available
+				if (snpDescription) {
+					contextData.snp_description = snpDescription;
+				}
+				
+				// Add enhanced SNPedia data if available
+				if (mutation.matched_genotype) {
+					contextData.matched_genotype = {
+						name: mutation.matched_genotype.name,
+						alleles: `${mutation.matched_genotype.allele1};${mutation.matched_genotype.allele2}`,
+						magnitude: mutation.matched_genotype.magnitude,
+						repute: mutation.matched_genotype.repute,
+						summary: mutation.matched_genotype.summary,
+						clinical_significance: `Magnitude ${mutation.matched_genotype.magnitude} (${mutation.matched_genotype.repute})`
+					};
+					
+					// Add genotype-level tags if available
+					if (mutation.matched_genotype.tags) {
+						contextData.matched_genotype.tags = mutation.matched_genotype.tags;
+					}
+				}
+				
+				// Add SNP-level tags if available
+				if (mutation.tags) {
+					contextData.snp_tags = mutation.tags;
+				}
+				
+				// Combine all tags for easier access
+				const allTags = {
+					medicines: new Set<string>(),
+					topics: new Set<string>(),
+					conditions: new Set<string>()
+				};
+				
+				if (mutation.tags) {
+					mutation.tags.medicines?.forEach((tag: string) => {
+						allTags.medicines.add(tag);
+					});
+					mutation.tags.topics?.forEach((tag: string) => {
+						allTags.topics.add(tag);
+					});
+					mutation.tags.conditions?.forEach((tag: string) => {
+						allTags.conditions.add(tag);
+					});
+				}
+				
+				if (mutation.matched_genotype?.tags) {
+					mutation.matched_genotype.tags.medicines?.forEach((tag: string) => {
+						allTags.medicines.add(tag);
+					});
+					mutation.matched_genotype.tags.topics?.forEach((tag: string) => {
+						allTags.topics.add(tag);
+					});
+					mutation.matched_genotype.tags.conditions?.forEach((tag: string) => {
+						allTags.conditions.add(tag);
+					});
+				}
+				
+				if (allTags.medicines.size > 0 || allTags.topics.size > 0 || allTags.conditions.size > 0) {
+					contextData.all_tags = {
+						medicines: Array.from(allTags.medicines),
+						topics: Array.from(allTags.topics),
+						conditions: Array.from(allTags.conditions)
+					};
+				}
+				
 				return {
 					type: "mutation",
 					name: `${mutation.rsid} (${mutation.gene_name})`,
 					id: mutation.rsid,
-					data: JSON.stringify({
-						rsid: mutation.rsid,
-						gene_name: mutation.gene_name,
-						phenotype: mutation.phenotype,
-						evidence_level: mutation.evidence_level,
-						genotype: mutation.genotype,
-						genotype_comment:
-							"  /** * The user's genotype code.\n" +
-							"   * 1: Heterozygous (one copy of the alternative allele)\n" +
-							"   * 2: Homozygous (two copies of the alternative allele)\n" +
-							"   */" +
-							"  /** * The user's genotype code. Use is to explain user mutations\n",
-
-						chrom: mutation.chrom,
-						position: mutation.position,
-						reference_allele: mutation.reference_allele,
-						alternative_allele: mutation.alternative_allele,
-						source: mutation.source,
-					}),
+					data: JSON.stringify(contextData, null, 2),
 				};
 			} else {
 				const prs = item.data;

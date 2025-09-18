@@ -147,7 +147,7 @@ export async function loadSnpDatabase(
   const snpDataMap: Record<string, DatabaseVariant> = {};
 
   // Process each SNP in the structured data
-  for (const [, snpData] of Object.entries(structuredData.snps as Record<string, any>)) {
+  for (const [snpKey, snpData] of Object.entries(structuredData.snps as Record<string, any>)) {
     let rsid = "";
     let gene_name = "";
     let description = "";
@@ -256,13 +256,19 @@ export async function loadSnpDatabase(
       }
     }
 
+    // Handle both template-based rsid extraction and direct key-based rsid
+    let finalRsid = rsid;
+    if (!finalRsid && snpKey.startsWith('Rs')) {
+      // Use the key as rsid (convert Rs12345 -> rs12345)
+      finalRsid = snpKey.charAt(0).toLowerCase() + snpKey.slice(1);
+    }
+    
     // Only add SNPs that have rsid
-    if (rsid && rsid.startsWith('rs')) {
-      const rsidLower = rsid.toLowerCase();
-      
+    if (finalRsid && finalRsid.startsWith('rs')) {
+      const rsidLower = finalRsid.toLowerCase();
       
       snpDataMap[rsidLower] = {
-        rsid: rsid,
+        rsid: finalRsid,
         reference_allele: reference_allele,
         alternative_allele: alternative_allele,
         gene_name: gene_name || null,

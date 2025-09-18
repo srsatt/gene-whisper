@@ -105,6 +105,59 @@ function StructuredMutationCard({
 }: MutationCardProps) {
   const genotype = mutation.matched_genotype!;
   
+  // Extract SNP description from raw data
+  let snpDescription = "";
+  if (mutation.raw) {
+    try {
+      const rawData = JSON.parse(mutation.raw);
+      if (rawData.description && rawData.description.trim().length > 20) {
+        snpDescription = rawData.description.trim();
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+
+  // Get all unique tags from SNP and genotype level
+  const allTags = {
+    medicines: new Set<string>(),
+    topics: new Set<string>(),
+    conditions: new Set<string>()
+  };
+
+  // Add SNP-level tags from mutation object
+  if (mutation.tags) {
+    mutation.tags.medicines?.forEach((tag: string) => {
+      allTags.medicines.add(tag);
+    });
+    mutation.tags.topics?.forEach((tag: string) => {
+      allTags.topics.add(tag);
+    });
+    mutation.tags.conditions?.forEach((tag: string) => {
+      allTags.conditions.add(tag);
+    });
+  }
+
+  // Also add genotype-level tags if available
+  if (genotype.tags) {
+    genotype.tags.medicines?.forEach((tag: string) => {
+      allTags.medicines.add(tag);
+    });
+    genotype.tags.topics?.forEach((tag: string) => {
+      allTags.topics.add(tag);
+    });
+    genotype.tags.conditions?.forEach((tag: string) => {
+      allTags.conditions.add(tag);
+    });
+  }
+
+  // Convert sets back to arrays
+  const combinedTags = {
+    medicines: Array.from(allTags.medicines),
+    topics: Array.from(allTags.topics),
+    conditions: Array.from(allTags.conditions)
+  };
+  
   // Get color based on repute
   const getReputeColor = (repute: string) => {
     switch (repute.toLowerCase()) {
@@ -170,9 +223,65 @@ function StructuredMutationCard({
                 </span>
               </div>
             </div>
-            <p className="text-sm text-gray-600 leading-relaxed mb-3">
-              {genotype.summary || mutation.phenotype}
-            </p>
+
+            {/* Your Genotype - Prominent at top */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-1">
+                <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                Your Genotype Effect
+              </h3>
+              <p className="text-sm text-blue-800 leading-relaxed font-medium">
+                {genotype.summary || mutation.phenotype}
+              </p>
+            </div>
+
+            {/* SNP Description */}
+            {snpDescription && (
+              <div className="mb-3">
+                <h4 className="text-xs font-medium text-gray-700 mb-1">SNP Information:</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {snpDescription}
+                </p>
+              </div>
+            )}
+
+            {/* Tags Section */}
+            {(combinedTags.conditions.length > 0 || combinedTags.topics.length > 0 || combinedTags.medicines.length > 0) && (
+              <div className="mb-3">
+                <h4 className="text-xs font-medium text-gray-700 mb-2">Related Tags:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {combinedTags.conditions.slice(0, 3).map((condition) => (
+                    <span
+                      key={`condition-${condition}`}
+                      className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded border border-red-200"
+                    >
+                      {condition}
+                    </span>
+                  ))}
+                  {combinedTags.topics.slice(0, 3).map((topic) => (
+                    <span
+                      key={`topic-${topic}`}
+                      className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                  {combinedTags.medicines.slice(0, 2).map((medicine) => (
+                    <span
+                      key={`medicine-${medicine}`}
+                      className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200"
+                    >
+                      {medicine}
+                    </span>
+                  ))}
+                  {(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) > 8 && (
+                    <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded border border-gray-200">
+                      +{(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start">
             <button
@@ -260,96 +369,264 @@ function EnhancedMutationCard({
     }
   }
 
+  // Extract SNP description - try multiple sources
+  let snpDescription = "";
+  
+  // First, try to get description from the mutation's raw data (parsed from DatabaseVariant)
+  if (mutation.raw) {
+    try {
+      const rawData = JSON.parse(mutation.raw);
+      if (rawData.description && rawData.description.trim().length > 20) {
+        snpDescription = rawData.description.trim();
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+  
+  // Fallback to extracting from snpData sections if available
+  if (!snpDescription && snpData.sections) {
+    for (const section of snpData.sections) {
+      if (section.paragraphs && section.paragraphs.length > 0) {
+        // Get the first meaningful paragraph by combining sentences
+        for (const paragraph of section.paragraphs) {
+          if (paragraph.sentences && paragraph.sentences.length > 0) {
+            const combinedText = paragraph.sentences.map(s => s.text).join(' ').trim();
+            if (combinedText.length > 20) {
+              snpDescription = combinedText;
+              break;
+            }
+          }
+        }
+        if (snpDescription) break;
+      }
+    }
+  }
+
+  // Get all unique tags from SNP and genotype level
+  const allTags = {
+    medicines: new Set<string>(),
+    topics: new Set<string>(),
+    conditions: new Set<string>()
+  };
+
+  // Add SNP-level tags from mutation object (from DatabaseVariant)
+  if (mutation.tags) {
+    mutation.tags.medicines?.forEach((tag: string) => {
+      allTags.medicines.add(tag);
+    });
+    mutation.tags.topics?.forEach((tag: string) => {
+      allTags.topics.add(tag);
+    });
+    mutation.tags.conditions?.forEach((tag: string) => {
+      allTags.conditions.add(tag);
+    });
+  }
+
+  // Also add genotype-level tags if available
+  if (mutation.matched_genotype?.tags) {
+    mutation.matched_genotype.tags.medicines?.forEach((tag: string) => {
+      allTags.medicines.add(tag);
+    });
+    mutation.matched_genotype.tags.topics?.forEach((tag: string) => {
+      allTags.topics.add(tag);
+    });
+    mutation.matched_genotype.tags.conditions?.forEach((tag: string) => {
+      allTags.conditions.add(tag);
+    });
+  }
+
+  // Convert sets back to arrays
+  const combinedTags = {
+    medicines: Array.from(allTags.medicines),
+    topics: Array.from(allTags.topics),
+    conditions: Array.from(allTags.conditions)
+  };
+
   return (
     <div
       className={cn(
-        "bg-white rounded-lg border p-4 transition-all group",
+        "bg-white rounded-lg border transition-all group",
         isSelected
           ? "border-blue-500 shadow-md"
           : "border-gray-200 hover:border-gray-300"
       )}
     >
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <a
-              href={`https://www.snpedia.com/index.php/${mutation.rsid}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors lowercase"
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <a
+                href={`https://www.snpedia.com/index.php/${mutation.rsid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors lowercase"
+              >
+                {mutation.rsid}
+              </a>
+              {mutation.gene_name && (
+                <span className="text-sm font-medium text-gray-900">
+                  {mutation.gene_name}
+                </span>
+              )}
+            </div>
+
+            {/* Your Genotype - Prominent at top */}
+            {mutation.phenotype && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                  Your Genotype Effect
+                </h3>
+                <p className="text-sm text-blue-800 leading-relaxed font-medium">
+                  {mutation.phenotype}
+                </p>
+              </div>
+            )}
+
+            {/* SNP Description */}
+            {snpDescription && (
+              <div className="mb-3">
+                <h4 className="text-xs font-medium text-gray-700 mb-1">SNP Information:</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {snpDescription}
+                </p>
+              </div>
+            )}
+
+            {/* Tags Section */}
+            {(combinedTags.conditions.length > 0 || combinedTags.topics.length > 0 || combinedTags.medicines.length > 0) && (
+              <div className="mb-3">
+                <h4 className="text-xs font-medium text-gray-700 mb-2">Related Tags:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {combinedTags.conditions.slice(0, 3).map((condition) => (
+                    <span
+                      key={`condition-${condition}`}
+                      className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded border border-red-200"
+                    >
+                      {condition}
+                    </span>
+                  ))}
+                  {combinedTags.topics.slice(0, 3).map((topic) => (
+                    <span
+                      key={`topic-${topic}`}
+                      className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded border border-blue-200"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                  {combinedTags.medicines.slice(0, 2).map((medicine) => (
+                    <span
+                      key={`medicine-${medicine}`}
+                      className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded border border-green-200"
+                    >
+                      {medicine}
+                    </span>
+                  ))}
+                  {(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) > 8 && (
+                    <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded border border-gray-200">
+                      +{(combinedTags.conditions.length + combinedTags.topics.length + combinedTags.medicines.length) - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start">
+            <button
+              type="button"
+              onClick={() => onDiscuss(mutation.rsid)}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {mutation.rsid}
-            </a>
-            <span className="text-sm font-medium text-gray-900">
-              {mutation.gene_name}
+              Discuss
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Information */}
+      <div className="p-4 bg-gray-50">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Your Alleles:</span>
+            <div className="font-mono text-gray-900">
+              {mutation.user_allele || 'Unknown'}
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Frequency:</span>
+            <div className="text-gray-900">
+              {mutation.gmaf ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%` : 'Unknown'}
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Chromosome:</span>
+            <div className="text-gray-900">{mutation.chrom}</div>
+          </div>
+          <div>
+            <span className="text-gray-500">Position:</span>
+            <div className="text-gray-900">{mutation.position?.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* Links section */}
+        {links.length > 0 && (
+          <div className="mt-3">
+            <h4 className="text-xs font-medium text-gray-700 mb-2">
+              Research Papers:
+            </h4>
+            <div className="space-y-1">
+              {links.slice(0, 2).map((link) => (
+                <a
+                  key={link.pmid}
+                  href={`https://pubmed.ncbi.nlm.nih.gov/${link.pmid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {link.title}
+                </a>
+              ))}
+              {links.length > 2 && (
+                <span className="text-xs text-gray-500">
+                  +{links.length - 2} more papers
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Lists section */}
+        {lists.length > 0 && (
+          <div className="mt-3">
+            <h4 className="text-xs font-medium text-gray-700 mb-1">
+              Additional Info:
+            </h4>
+            <div className="text-xs text-gray-600">
+              {lists.slice(0, 3).map((item, index) => (
+                <div key={`list-item-${index}-${item.substring(0, 10)}`} className="truncate">
+                  • {item}
+                </div>
+              ))}
+              {lists.length > 3 && (
+                <div className="text-gray-500">
+                  +{lists.length - 3} more items
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Orientation info if present */}
+        {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
+          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+            <span className="text-yellow-800">
+              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''} 
+              {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
             </span>
           </div>
-
-          {/* Description from paragraphs */}
-          {mutation.phenotype && (
-            <p className="text-sm text-gray-600 leading-relaxed mb-3">
-              {mutation.phenotype}
-            </p>
-          )}
-
-          {/* Links section */}
-          {links.length > 0 && (
-            <div className="mb-3">
-              <h4 className="text-xs font-medium text-gray-700 mb-2">
-                Research Papers:
-              </h4>
-              <div className="space-y-1">
-                {links.slice(0, 2).map((link, index) => (
-                  <a
-                    key={index}
-                    href={`https://pubmed.ncbi.nlm.nih.gov/${link.pmid}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                    {link.title}
-                  </a>
-                ))}
-                {links.length > 2 && (
-                  <span className="text-xs text-gray-500">
-                    +{links.length - 2} more papers
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Lists section */}
-          {lists.length > 0 && (
-            <div className="mb-2">
-              <h4 className="text-xs font-medium text-gray-700 mb-1">
-                Additional Info:
-              </h4>
-              <div className="text-xs text-gray-600">
-                {lists.slice(0, 3).map((item, index) => (
-                  <div key={index} className="truncate">
-                    • {item}
-                  </div>
-                ))}
-                {lists.length > 3 && (
-                  <div className="text-gray-500">
-                    +{lists.length - 3} more items
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
-          <button
-            type="button"
-            onClick={() => onDiscuss(mutation.rsid)}
-            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Discuss
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -422,6 +699,7 @@ function PRSCard({ prsResult, onDiscuss }: PRSCardProps) {
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
           <button
+            type="button"
             onClick={() => onDiscuss(prsResult.pgs_id)}
             className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >

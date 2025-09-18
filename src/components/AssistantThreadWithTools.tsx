@@ -274,11 +274,30 @@ export function AssistantThreadWithTools({
 							// Add context if available
 							if (currentContextRef.current) {
 								const context = currentContextRef.current;
-								systemPrompt += `\n\nCURRENT CONTEXT: You are currently discussing ${context.type === "mutation" ? "a genetic mutation" : "a polygenic risk score"} "${context.name}" (ID: ${context.id}).
+								if (context.type === "mutation") {
+									systemPrompt += `\n\nCURRENT GENETIC VARIANT CONTEXT: You are discussing the genetic variant "${context.name}" (${context.id}).
+
+DETAILED VARIANT INFORMATION:
+${context.data}
+
+GUIDANCE FOR DISCUSSION:
+- This is the user's specific genetic variant they want to understand
+- Focus on explaining what this variant means for THEM personally
+- Use the magnitude and repute to assess clinical significance
+- Reference the tags to explain related conditions, topics, or medications
+- Explain the genotype in simple terms (heterozygous vs homozygous)
+- Connect the SNP description to their specific genotype effect
+- Be clear about the difference between population frequency and personal impact
+- If discussing medications, note that this is educational and they should consult healthcare providers
+
+When answering questions, assume they're asking about THIS specific variant unless they specify otherwise.`;
+								} else {
+									systemPrompt += `\n\nCURRENT PRS CONTEXT: You are discussing the polygenic risk score "${context.name}".
                 
 Detailed information: ${context.data}
 
-When the user asks questions, they are likely referring to this ${context.type}. Use this information to provide relevant and specific answers.`;
+When the user asks questions, they are likely referring to this PRS. Use this information to provide relevant and specific answers.`;
+								}
 							}
                             if (demographics) {
                                 systemPrompt += `\n\nDEMOGRAPHICS: The user's demographics are:

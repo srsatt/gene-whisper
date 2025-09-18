@@ -2,6 +2,8 @@
 *.safetensors filter=lfs diff=lfs merge=lfs -text
 *.wasm filter=lfs diff=lfs merge=lfs -text
 data_files/*.json filter=lfs diff=lfs merge=lfs -text
+
+# Large JSON files in public directory
 public/clinvar.json filter=lfs diff=lfs merge=lfs -text
 public/clinvar_descriptions.json filter=lfs diff=lfs merge=lfs -text
 public/clinvar_description_map.json filter=lfs diff=lfs merge=lfs -text

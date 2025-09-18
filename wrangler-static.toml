@@ -1,0 +1,27 @@
+name = "gene-whisper-static"
+main = "src/static.js"
+compatibility_date = "2023-12-01"
+
+# R2 bucket bindings
+[[r2_buckets]]
+binding = "STATIC_ASSETS"
+bucket_name = "genewhisper"
+preview_bucket_name = "genewhisper-preview"
+
+[env.production]
+name = "gene-whisper-static-prod"
+# Note: Custom domains on pages.dev require manual DNS configuration
+# The worker will be available at gene-whisper-static-prod.workers.dev
+
+[[env.production.r2_buckets]]
+binding = "STATIC_ASSETS"
+bucket_name = "genewhisper"
+preview_bucket_name = "genewhisper-preview"
+
+[env.development]
+name = "gene-whisper-static-dev"
+
+[[env.development.r2_buckets]]
+binding = "STATIC_ASSETS"
+bucket_name = "genewhisper"
+preview_bucket_name = "genewhisper-preview"

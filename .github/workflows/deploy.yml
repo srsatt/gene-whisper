@@ -31,15 +31,36 @@ jobs:
       - name: Build project
         run: pnpm run build
 
-      - name: Note - R2 files already uploaded manually
-        run: echo "Data, model, and WASM files have been uploaded manually to genewhisper R2 bucket"
+      - name: Upload data files to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object put genewhisper --file=public/data --recursive --content-type=application/json --exclude="*.txt" --exclude="*.wasm" --exclude="*.bin"
+
+      - name: Upload demo genome file to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object put genewhisper/data/demo_genome.txt --file=public/data/demo_genome.txt --content-type=text/plain
+
+      - name: Upload WASM files to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: r2 object put genewhisper --file=public/wasm --recursive --content-type=application/wasm
+
+      - name: Note - Large model files need manual upload
+        run: echo "Large model files (4.3GB) in II-Medical-8B-q4f16_1-MLC/ should be uploaded manually due to GitHub Actions limits"
 
       - name: Deploy static assets worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy src/static.js --name gene-whisper-static-prod
+          command: deploy --config wrangler-static.toml --env production
 
       - name: Prepare Pages deployment (exclude large files)
         run: |

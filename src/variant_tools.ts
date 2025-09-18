@@ -114,9 +114,9 @@ export async function loadClinvarDatabase(
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
     ? (() => {
         const hostname = window.location.hostname;
-        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        // For pages.dev domains, use the dedicated worker
         if (hostname.endsWith('.pages.dev')) {
-          return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+          return 'https://gene-whisper-static-prod.srsatt.workers.dev';
         }
         // For custom domains, use static subdomain
         return `https://static.${hostname}`;
@@ -193,9 +193,9 @@ export async function loadSnpDatabase(
   const staticBaseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
     ? (() => {
         const hostname = window.location.hostname;
-        // For pages.dev domains, use the same origin since static subdomain may not be configured
+        // For pages.dev domains, use the dedicated worker
         if (hostname.endsWith('.pages.dev')) {
-          return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+          return 'https://gene-whisper-static-prod.srsatt.workers.dev';
         }
         // For custom domains, use static subdomain
         return `https://static.${hostname}`;

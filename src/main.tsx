@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { ChatPage } from './pages/Chat.tsx'
-import { registerSW } from 'virtual:pwa-register'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Root element not found')
@@ -19,5 +18,3 @@ createRoot(rootElement).render(
     </BrowserRouter>
   </StrictMode>,
 )
-
-registerSW({ immediate: true })

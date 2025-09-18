@@ -9,11 +9,15 @@ import type { Connect } from 'vite'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+    ...(process.env.NODE_ENV !== 'production' ? [VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['vite.svg'],
+      devOptions: {
+        enabled: false
+      },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB limit
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
       manifest: {
         name: 'Generic LLM RAG',
@@ -27,7 +31,7 @@ export default defineConfig({
           { src: '/vite.svg', sizes: '512x512', type: 'image/svg+xml' }
         ],
       },
-    }),
+    })] : []),
     // Robust static large-file server with Range support for model files
     {
       name: 'serve-large-models',

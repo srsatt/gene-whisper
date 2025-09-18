@@ -33,7 +33,18 @@ interface PRSCardProps {
 }
 
 function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
-  // Render enhanced card if we have SnpData
+  // Use enhanced card for SNPedia variants with structured data
+  if (mutation.source === "snpedia" && mutation.matched_genotype) {
+    return (
+      <StructuredMutationCard
+        mutation={mutation}
+        onDiscuss={onDiscuss}
+        isSelected={isSelected}
+      />
+    );
+  }
+
+  // Render enhanced card if we have legacy SnpData
   if (mutation.snpData && mutation.source === "snpedia") {
     return (
       <EnhancedMutationCard
@@ -75,12 +86,140 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
           <button
+            type="button"
             onClick={() => onDiscuss(mutation.rsid)}
             className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Discuss
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StructuredMutationCard({
+  mutation,
+  onDiscuss,
+  isSelected,
+}: MutationCardProps) {
+  const genotype = mutation.matched_genotype!;
+  
+  // Get color based on repute
+  const getReputeColor = (repute: string) => {
+    switch (repute.toLowerCase()) {
+      case 'good':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'bad':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'unknown':
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Get magnitude color
+  const getMagnitudeColor = (magnitude: string) => {
+    const mag = parseFloat(magnitude);
+    if (mag >= 5) return 'bg-red-100 text-red-800';
+    if (mag >= 3) return 'bg-orange-100 text-orange-800';
+    if (mag >= 2) return 'bg-yellow-100 text-yellow-800';
+    if (mag >= 1) return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <div
+      className={cn(
+        "bg-white rounded-lg border transition-all group",
+        isSelected
+          ? "border-blue-500 shadow-md"
+          : "border-gray-200 hover:border-gray-300"
+      )}
+    >
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <a
+                href={`https://www.snpedia.com/index.php/${mutation.rsid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm font-mono hover:bg-blue-100 hover:text-blue-700 transition-colors lowercase"
+              >
+                {mutation.rsid}
+              </a>
+              {mutation.gene_name && (
+                <span className="text-sm font-medium text-gray-900">
+                  {mutation.gene_name}
+                </span>
+              )}
+              <div className="flex items-center gap-1">
+                <span className={cn(
+                  "px-2 py-1 text-xs rounded font-medium border",
+                  getReputeColor(genotype.repute)
+                )}>
+                  {genotype.repute}
+                </span>
+                <span className={cn(
+                  "px-2 py-1 text-xs rounded font-medium",
+                  getMagnitudeColor(genotype.magnitude)
+                )}>
+                  Magnitude {genotype.magnitude}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed mb-3">
+              {genotype.summary || mutation.phenotype}
+            </p>
+          </div>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start">
+            <button
+              type="button"
+              onClick={() => onDiscuss(mutation.rsid)}
+              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Discuss
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Genotype Information */}
+      <div className="p-4 bg-gray-50">
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-500">Your Genotype:</span>
+            <div className="font-mono text-gray-900">
+              {mutation.user_allele} → ({genotype.allele1};{genotype.allele2})
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Frequency:</span>
+            <div className="text-gray-900">
+              {mutation.gmaf ? `${(parseFloat(mutation.gmaf) * 100).toFixed(1)}%` : 'Unknown'}
+            </div>
+          </div>
+          <div>
+            <span className="text-gray-500">Chromosome:</span>
+            <div className="text-gray-900">{mutation.chrom}</div>
+          </div>
+          <div>
+            <span className="text-gray-500">Position:</span>
+            <div className="text-gray-900">{mutation.position?.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* Orientation info if present */}
+        {(mutation.orientation === 'minus' || mutation.stabilized === 'minus') && (
+          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+            <span className="text-yellow-800">
+              ⚠️ Orientation adjusted: {mutation.orientation === 'minus' ? 'Orientation: minus' : ''} 
+              {mutation.stabilized === 'minus' ? ' Stabilized: minus' : ''}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -204,6 +343,7 @@ function EnhancedMutationCard({
 
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
           <button
+            type="button"
             onClick={() => onDiscuss(mutation.rsid)}
             className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -472,6 +612,7 @@ export default function ReportLayout({
             {prsResults.length > 0 && (
               <div>
                 <button
+                  type="button"
                   onClick={togglePrsSection}
                   className={cn(
                     "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm cursor-pointer",
@@ -535,8 +676,9 @@ export default function ReportLayout({
 
                     {hasNormalRisk && (
                       <div className="flex justify-center pt-6">
-                        <button
-                          onClick={toggleNormalRisk}
+                      <button
+                        type="button"
+                        onClick={toggleNormalRisk}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >
                           {showNormalRisk
@@ -553,8 +695,9 @@ export default function ReportLayout({
             {/* Monogenic Score Section */}
             {allMutations.length > 0 && (
               <div className="">
-                <button
-                  onClick={toggleSection}
+              <button
+                type="button"
+                onClick={toggleSection}
                   className={cn(
                     "flex items-center justify-between w-full text-left bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 p-6 hover:from-purple-100 hover:to-indigo-100 shadow-sm cursor-pointer",
                     sectionExpanded ? "rounded-t-lg" : "rounded-lg"
@@ -604,7 +747,7 @@ export default function ReportLayout({
                   <div>
                     <div className="bg-white rounded-b-lg border border-t-0 border-purple-100 p-4 shadow-sm">
                       <div className="grid gap-4">
-                        {visibleMutations.map((mutation) => (
+                        {visibleMutations.filter((mutation) => mutation.source === "snpedia" && mutation.matched_genotype).map((mutation) => (
                           <MutationCard
                             key={mutation.rsid}
                             mutation={mutation}
@@ -618,6 +761,7 @@ export default function ReportLayout({
                     {hasMore && (
                       <div className="flex justify-center pt-6">
                         <button
+                          type="button"
                           onClick={showMore}
                           className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                         >

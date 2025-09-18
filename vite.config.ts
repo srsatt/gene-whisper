@@ -139,4 +139,8 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@mlc-ai/web-llm'],
   },
+  test: {
+    globals: true,
+    environment: 'node',
+  },
 })

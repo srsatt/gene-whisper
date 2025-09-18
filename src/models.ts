@@ -19,6 +19,34 @@ export interface Mutation {
   raw: string;
   source?: string;
   snpData?: SnpData;
+  
+  // Enhanced fields from structured data
+  user_allele?: string;
+  summary?: string;
+  repute?: string;
+  magnitude?: string;
+  gmaf?: string;
+  orientation?: string;
+  stabilized?: string;
+  matched_genotype?: {
+    name: string;
+    allele1: string;
+    allele2: string;
+    magnitude: string;
+    repute: string;
+    summary: string;
+    tags?: {
+      medicines: string[];
+      topics: string[];
+      conditions: string[];
+    };
+    sections?: any[];
+  };
+  tags?: {
+    medicines: string[];
+    topics: string[];
+    conditions: string[];
+  };
 }
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';

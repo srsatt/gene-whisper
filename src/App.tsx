@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer } from "react";
 import type {
   AppState,
   Demographics,
+  ExtendedDemographics,
   Report,
   ChatMessage,
   StarRating,
@@ -282,6 +283,7 @@ function filterPRSConfigsBySex(
 async function generateRealReport(
   sharedVariants: any[],
   demographics: Demographics,
+  extendedDemographics: ExtendedDemographics,
   parsedVariants: Record<string, any>,
   loadedData: LoadedData,
   completePhase?: (phase: string) => void
@@ -348,6 +350,7 @@ async function generateRealReport(
     generatedAt: new Date(),
     mutations,
     demographics,
+    extendedDemographics,
     prsResults,
   };
 }
@@ -365,6 +368,7 @@ type AppAction =
   | { type: "SET_PHASE"; phase: AppState["phase"] }
   | { type: "SET_FILE"; file: File }
   | { type: "SET_DEMOGRAPHICS"; demographics: Demographics }
+  | { type: "SET_EXTENDED_DEMOGRAPHICS"; extendedDemographics: ExtendedDemographics }
   | { type: "SET_REPORT"; report: Report }
   | { type: "SET_SELECTED_MUTATION"; rsid?: string }
   | { type: "SET_SELECTED_ITEM"; item?: SelectedItem }
@@ -384,6 +388,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case "SET_DEMOGRAPHICS":
       return { ...state, demographics: action.demographics };
+
+    case "SET_EXTENDED_DEMOGRAPHICS":
+      return { ...state, extendedDemographics: action.extendedDemographics };
 
     case "SET_REPORT":
       return { ...state, report: action.report, phase: "report" };
@@ -470,6 +477,20 @@ function AppContent() {
   const handleDemographicsChange = (demographics: Demographics) => {
     dispatch({ type: "SET_DEMOGRAPHICS", demographics });
     saveDemographics(demographics);
+  };
+
+  // Handle extended demographics change
+  const handleExtendedDemographicsChange = (extendedDemographics: ExtendedDemographics) => {
+    dispatch({ type: "SET_EXTENDED_DEMOGRAPHICS", extendedDemographics });
+    // Update the report with new extended demographics if we have one
+    if (state.report) {
+      const updatedReport = {
+        ...state.report,
+        extendedDemographics,
+      };
+      dispatch({ type: "SET_REPORT", report: updatedReport });
+      saveReport(updatedReport);
+    }
   };
 
   // Handle start processing
@@ -588,6 +609,7 @@ function AppContent() {
         const report = await generateRealReport(
           sharedVariants,
           state.demographics,
+          state.extendedDemographics,
           parsedVariants,
           loadedData,
           completePhase
@@ -715,6 +737,7 @@ function AppContent() {
         const report = await generateRealReport(
           sharedVariants,
           state.demographics,
+          state.extendedDemographics,
           parsedVariants,
           loadedData,
           completePhase
@@ -857,11 +880,13 @@ function AppContent() {
         return state.report ? (
           <ReportPage
             report={state.report}
+            extendedDemographics={state.extendedDemographics}
             selectedMutationId={state.selectedMutationId}
             selectedItem={state.selectedItem}
             chatMessages={state.chatMessages}
             onDiscuss={handleDiscuss}
             onSendMessage={handleSendMessage}
+            onExtendedDemographicsChange={handleExtendedDemographicsChange}
             onBack={handleBackToUpload}
           />
         ) : null;
@@ -924,6 +949,7 @@ function App() {
   const initialState: AppState = {
     phase: "upload",
     demographics: getDemographics(),
+    extendedDemographics: {},
     chatMessages: [],
     uiPreferences: {
       sectionsExpanded: {

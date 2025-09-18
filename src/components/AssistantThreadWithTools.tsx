@@ -17,9 +17,101 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
 import { z } from "zod";
 import { CustomWebLLM } from "../llm/custom-web-llm";
-import type { Mutation } from "../models";
+import type { Mutation, ExtendedDemographics } from "../models";
 import type { PRSResult } from "../prs";
 import { useAppContext } from "../App";
+
+// Helper function to format extended demographics for LLM context
+function formatExtendedDemographicsForContext(extendedDemographics: ExtendedDemographics): string {
+	const sections = [];
+
+	if (extendedDemographics.height) {
+		sections.push(`Height: ${extendedDemographics.height} cm`);
+	}
+
+	// Lifestyle & Habits
+	const lifestyle = [];
+	if (extendedDemographics.exerciseDaysPerWeek !== undefined) {
+		lifestyle.push(`Exercises ${extendedDemographics.exerciseDaysPerWeek} days per week`);
+	}
+	if (extendedDemographics.sleepHoursPerNight !== undefined) {
+		lifestyle.push(`Sleeps ${extendedDemographics.sleepHoursPerNight} hours per night`);
+	}
+	if (extendedDemographics.smoker !== undefined) {
+		lifestyle.push(`${extendedDemographics.smoker ? 'Smoker' : 'Non-smoker'}`);
+	}
+	if (extendedDemographics.alcoholDrinksPerWeek !== undefined) {
+		lifestyle.push(`${extendedDemographics.alcoholDrinksPerWeek} alcoholic drinks per week`);
+	}
+	if (extendedDemographics.fruitVegServingsPerDay !== undefined) {
+		lifestyle.push(`${extendedDemographics.fruitVegServingsPerDay} fruit/vegetable servings per day`);
+	}
+	if (lifestyle.length > 0) {
+		sections.push(`Lifestyle: ${lifestyle.join(', ')}`);
+	}
+
+	// Medical History
+	const medical = [];
+	if (extendedDemographics.hasHighBloodPressure !== undefined) {
+		medical.push(`High blood pressure: ${extendedDemographics.hasHighBloodPressure ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.diabetesType) {
+		medical.push(`Diabetes: ${extendedDemographics.diabetesType}`);
+	}
+	if (extendedDemographics.hasHeartDiseaseOrStroke !== undefined) {
+		medical.push(`Heart disease/stroke: ${extendedDemographics.hasHeartDiseaseOrStroke ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.hasCancer !== undefined) {
+		medical.push(`Cancer history: ${extendedDemographics.hasCancer ? 'Yes' : 'No'}`);
+	}
+	if (medical.length > 0) {
+		sections.push(`Medical History: ${medical.join(', ')}`);
+	}
+
+	// Mental & Social Health
+	const mental = [];
+	if (extendedDemographics.stressLevel) {
+		mental.push(`Stress level: ${extendedDemographics.stressLevel}`);
+	}
+	if (extendedDemographics.hasSocialSupport !== undefined) {
+		mental.push(`Social support: ${extendedDemographics.hasSocialSupport ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.hasConcentrationProblems !== undefined) {
+		mental.push(`Concentration problems: ${extendedDemographics.hasConcentrationProblems ? 'Yes' : 'No'}`);
+	}
+	if (mental.length > 0) {
+		sections.push(`Mental/Social Health: ${mental.join(', ')}`);
+	}
+
+	// Family History
+	const family = [];
+	if (extendedDemographics.familyHistoryCardiovascular !== undefined) {
+		family.push(`Cardiovascular disease: ${extendedDemographics.familyHistoryCardiovascular ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.familyHistoryCancer !== undefined) {
+		family.push(`Cancer: ${extendedDemographics.familyHistoryCancer ? 'Yes' : 'No'}`);
+	}
+	if (family.length > 0) {
+		sections.push(`Family History: ${family.join(', ')}`);
+	}
+
+	// Recent Symptoms & Screening
+	const recent = [];
+	if (extendedDemographics.hasUnintentionalWeightLoss !== undefined) {
+		recent.push(`Unintentional weight loss: ${extendedDemographics.hasUnintentionalWeightLoss ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.hasShortnesOfBreath !== undefined) {
+		recent.push(`Shortness of breath: ${extendedDemographics.hasShortnesOfBreath ? 'Yes' : 'No'}`);
+	}
+	if (extendedDemographics.lastCheckup) {
+		recent.push(`Last checkup: ${extendedDemographics.lastCheckup}`);
+	}
+	if (recent.length > 0) {
+		sections.push(`Recent Health: ${recent.join(', ')}`);
+	}
+
+	return sections.join('\n');
+}
 
 // Define tools using AI SDK format
 const consoleLogTool = {
@@ -137,7 +229,7 @@ export function AssistantThreadWithTools({
 	const model = useMemo(() => new CustomWebLLM(), []);
 	const runtimeRef = useRef<ReturnType<typeof useLocalRuntime> | null>(null);
 	const currentContextRef = useRef<GeneticContext | null>(null);
-    const {state:{demographics}}= useAppContext()
+    const {state:{demographics, extendedDemographics}}= useAppContext()
 
 	const SdkToolAdapter: ChatModelAdapter = useMemo(
 		() => ({
@@ -193,6 +285,17 @@ When the user asks questions, they are likely referring to this ${context.type}.
                                 ${JSON.stringify(demographics)}
                                 nb! weight and height are in kg and cm, respectively.
                                 consider them when answering questions.`;
+                            }
+
+                            // Add extended demographics if available
+                            if (extendedDemographics && Object.keys(extendedDemographics).length > 0) {
+                                const formattedExtended = formatExtendedDemographicsForContext(extendedDemographics);
+                                if (formattedExtended) {
+                                    systemPrompt += `\n\nEXTENDED HEALTH PROFILE: The user has provided additional health information:
+${formattedExtended}
+
+Use this information to provide more personalized and relevant medical insights. Consider lifestyle factors, medical history, and family history when discussing genetic risks and recommendations.`;
+                                }
                             }
 
 							// Inject hidden context messages captured from the thread
@@ -328,7 +431,7 @@ When the user asks questions, they are likely referring to this ${context.type}.
 				}
 			},
 		}),
-		[model, demographics],
+		[model, demographics, extendedDemographics],
 	);
 
 	const runtime = useLocalRuntime(SdkToolAdapter);

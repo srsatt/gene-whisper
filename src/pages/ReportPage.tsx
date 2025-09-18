@@ -1,28 +1,35 @@
 // src/pages/ReportPage.tsx
 
-import { useEffect } from "react";
-import type { Report, ChatMessage, SelectedItem } from "../models";
+import { useEffect, useState } from "react";
+import type { Report, ChatMessage, SelectedItem, ExtendedDemographics } from "../models";
 import ReportLayout from "../components/ReportLayout";
+import ExtendedDemographicsModal from "../components/ExtendedDemographicsModal";
 
 interface ReportPageProps {
   report: Report;
+  extendedDemographics: ExtendedDemographics;
   selectedMutationId?: string;
   selectedItem?: SelectedItem;
   chatMessages: ChatMessage[];
   onDiscuss: (id: string) => void;
   onSendMessage: (content: string) => void;
+  onExtendedDemographicsChange: (extendedDemographics: ExtendedDemographics) => void;
   onBack: () => void;
 }
 
 export default function ReportPage({
   report,
+  extendedDemographics,
   selectedMutationId,
   selectedItem,
   chatMessages,
   onDiscuss,
   onSendMessage,
+  onExtendedDemographicsChange,
   onBack,
 }: ReportPageProps) {
+  const [isExtendedDemographicsModalOpen, setIsExtendedDemographicsModalOpen] = useState(false);
+
   // Scroll to top when report page loads
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -36,6 +43,7 @@ export default function ReportPage({
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center space-x-3">
               <button
+                type="button"
                 onClick={onBack}
                 className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md cursor-pointer"
                 aria-label="Go back to upload"
@@ -45,7 +53,9 @@ export default function ReportPage({
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
+                  <title>Back</title>
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -65,6 +75,33 @@ export default function ReportPage({
             </div>
 
             <div className="flex items-center space-x-3">
+              {/* Extended Demographics button */}
+              <button
+                type="button"
+                onClick={() => setIsExtendedDemographicsModalOpen(true)}
+                className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                aria-label="Extended Demographics"
+              >
+                <div className="flex items-center space-x-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <title>User Profile</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  <span>Health Profile</span>
+                </div>
+              </button>
+
               {/* Export button */}
               {/* <Tooltip.Provider>
                 <Tooltip.Root>
@@ -126,6 +163,14 @@ export default function ReportPage({
           prsResults={report.prsResults}
         />
       </div>
+
+      {/* Extended Demographics Modal */}
+      <ExtendedDemographicsModal
+        isOpen={isExtendedDemographicsModalOpen}
+        onClose={() => setIsExtendedDemographicsModalOpen(false)}
+        extendedDemographics={extendedDemographics}
+        onSave={onExtendedDemographicsChange}
+      />
     </div>
   );
 }

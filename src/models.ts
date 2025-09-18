@@ -1,5 +1,6 @@
 import {env} from '@xenova/transformers'
 import type { MLCEngineInterface } from '@mlc-ai/web-llm'
+import type { SnpData } from './snp-data-raw';
 
 export type Vendor = '23andMe' | 'MyHeritage' | 'Ancestry' | 'Generic VCF';
 
@@ -17,7 +18,7 @@ export interface Mutation {
   genotype: 1|2;
   raw: string;
   source?: string;
-  snpData?: import('./snp-data-raw').SnpData; // Enhanced data for rendering
+  snpData?: SnpData;
 }
 
 export type SexAtBirth = 'Male' | 'Female' | 'Intersex' | 'Prefer not to say';
@@ -40,12 +41,49 @@ export interface Demographics {
   weight?: number;
 }
 
+export type DiabetesType = 'Type 1' | 'Type 2' | 'None';
+export type StressLevel = 'never' | 'occasionally' | 'often' | 'always';
+export type CheckupFrequency = '<1 year' | '1–3 years' | '>3 years' | 'never';
+
+export interface ExtendedDemographics {
+  // Basic Demographics (from existing Demographics)
+  height?: number; // cm
+  
+  // Lifestyle & Habits
+  exerciseDaysPerWeek?: number; // 0-7
+  sleepHoursPerNight?: number; // hours
+  smoker?: boolean;
+  alcoholDrinksPerWeek?: number;
+  fruitVegServingsPerDay?: number; // 0-10+
+  
+  // Medical History
+  hasHighBloodPressure?: boolean;
+  diabetesType?: DiabetesType;
+  hasHeartDiseaseOrStroke?: boolean;
+  hasCancer?: boolean;
+  
+  // Mental & Social Health
+  stressLevel?: StressLevel;
+  hasSocialSupport?: boolean;
+  hasConcentrationProblems?: boolean;
+  
+  // Family History & Genetics
+  familyHistoryCardiovascular?: boolean;
+  familyHistoryCancer?: boolean;
+  
+  // Recent Symptoms & Screening
+  hasUnintentionalWeightLoss?: boolean;
+  hasShortnesOfBreath?: boolean;
+  lastCheckup?: CheckupFrequency;
+}
+
 export interface Report {
   id: string;
   vendor: Vendor;
   generatedAt: Date;
   mutations: Mutation[];
   demographics?: Demographics;
+  extendedDemographics?: ExtendedDemographics;
   prsResults?: import('./prs').PRSResult[];
 }
 
@@ -69,6 +107,7 @@ export interface SelectedItem {
 export interface AppState {
   phase: 'upload' | 'processing' | 'report';
   demographics: Demographics;
+  extendedDemographics: ExtendedDemographics;
   uploadedFile?: File;
   report?: Report;
   selectedMutationId?: string;

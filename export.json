@@ -1,0 +1,216 @@
+{
+  "title": null,
+  "categories": [],
+  "sections": [
+    {
+      "title": "",
+      "depth": 0,
+      "templates": [
+        {
+          "rsid": "1021737",
+          "gene": "CTH",
+          "chromosome": "1",
+          "position": "70439117",
+          "orientation": "plus",
+          "gmaf": "0.2259",
+          "assembly": "GRCh38",
+          "genomebuild": "38.1",
+          "dbsnpbuild": "141",
+          "geno1": "(G;G)",
+          "geno2": "(G;T)",
+          "geno3": "(T;T)",
+          "gene_s": "CTH",
+          "stabilizedorientation": "plus",
+          "template": "rsnum"
+        },
+        {
+          "geno1": "(G;G)",
+          "geno2": "(G;T)",
+          "geno3": "(T;T)",
+          "list": [
+            "CEU",
+            "54.5",
+            "38.4",
+            "7.1",
+            "HCB",
+            "62.2",
+            "31.9",
+            "5.9",
+            "JPT",
+            "59.3",
+            "36.3",
+            "4.4",
+            "YRI",
+            "87.1",
+            "12.9",
+            "0.0",
+            "ASW",
+            "71.9",
+            "28.1",
+            "0.0",
+            "CHB",
+            "62.2",
+            "31.9",
+            "5.9",
+            "CHD",
+            "71.6",
+            "23.9",
+            "4.6",
+            "GIH",
+            "56.4",
+            "38.6",
+            "5.0",
+            "LWK",
+            "86.2",
+            "13.8",
+            "0.0",
+            "MEX",
+            "27.6",
+            "50.0",
+            "22.4",
+            "MKK",
+            "91.0",
+            "9.0",
+            "0.0",
+            "TSI",
+            "58.4",
+            "39.6",
+            "2.0"
+          ],
+          "hapmaprevision": "28",
+          "template": "population diversity"
+        },
+        {
+          "id": "607657",
+          "rsnum": "1021737",
+          "variant": "0005",
+          "template": "omim"
+        },
+        {
+          "rsid": "1021737",
+          "reversed": "0",
+          "fwdref": "G",
+          "fwdalt": "T",
+          "ref": "G",
+          "alt": "T",
+          "rspos": "70904800",
+          "chrom": "1",
+          "gmaf": "0.2271",
+          "dbsnpbuildid": "86",
+          "ssr": "0",
+          "sao": "1",
+          "vp": "0x050368000a0515053f110100",
+          "geneinfo": "CTH:1491",
+          "gene_name": "CTH",
+          "gene_id": "1491",
+          "wgt": "1",
+          "vc": "SNV",
+          "clnalle": "1",
+          "clnhgvs": "NC_000001.10:g.70904800G>T",
+          "clnorigin": "1",
+          "clnsig": "255",
+          "tags": "PM;PMC;S3D;SLO;NSM;REF;ASP;VLD;G5;HD;GNO;KGPhase1;KGPhase3;LSD;OM",
+          "caf": "0.7947; 0.2053",
+          "clnacc": "RCV000003075.4; RCV000331590.1",
+          "clndbn": "Homocysteine, total plasma, elevated; Cystathioninuria",
+          "clnsrc": "OMIM Allelic Variant; UniProtKB (protein)",
+          "clnsrcid": "607657.0005; P32929#VAR_015452",
+          "common": "1",
+          "disease": "Homocysteine; Cystathioninuria",
+          "clnrevstat": "no_criteria; single",
+          "clndsdb": "MedGen; MedGen:OMIM:Orphanet:SNOMED_CT",
+          "clndsdbid": "C4017108; C0220993:219500:ORPHA212:13003007",
+          "template": "clinvar"
+        },
+        {
+          "pmid": "18701025",
+          "title": "Relationship between cystathionine gamma-lyase gene polymorphism and essential hypertension in Northern Chinese Han population.",
+          "template": "pmid auto"
+        },
+        {
+          "pmid": "19048631",
+          "title": "Oral facial clefts and gene polymorphisms in metabolism of folate/one-carbon and vitamin A: a pathway-wide association study.",
+          "oa": "1",
+          "template": "pmid auto"
+        },
+        {
+          "pmid": "25807836",
+          "title": "The importance of rs1021737 and rs482843 polymorphisms of cystathionine gamma-lyase in the etiology of preeclampsia in the Caucasian population",
+          "template": "pmid auto"
+        },
+        {
+          "pmid": "29694444",
+          "title": "One-carbon metabolism biomarkers and genetic variants in relation to colorectal cancer risk by KRAS and BRAF mutation status.",
+          "oa": "1",
+          "template": "pmid auto"
+        },
+        {
+          "list": [
+            "23andMe v1"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "23andMe v2"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "23andMe v3"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "23andMe v4"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "Ancestry v2"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "FTDNA2"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "FTDNA"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "HumanOmni1Quad"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "Illumina Human 1M"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "Ancestry v2c"
+          ],
+          "template": "on chip"
+        },
+        {
+          "list": [
+            "Ancestry v2d"
+          ],
+          "template": "on chip"
+        }
+      ]
+    }
+  ]
+}

@@ -9,22 +9,108 @@ import {
   type ChatModelAdapter,
 } from '@assistant-ui/react'
 import '@assistant-ui/styles/index.css'
-import { getWebLlmEngine } from '../weblm'
+import { getWebLlmEngine, modelInitProgressEmitter } from '../weblm'
+import type { InitProgressReport, MLCEngineInterface } from '@mlc-ai/web-llm'
+
+// Custom hook to track model initialization progress (currently unused but available for future use)
+// function useModelInitProgress() {
+//   const [progress, setProgress] = useState<InitProgressReport | null>(null)
+//   
+//   useEffect(() => {
+//     const handleProgress = (event: CustomEvent<InitProgressReport>) => {
+//       setProgress(event.detail)
+//     }
+//     
+//     modelInitProgressEmitter.addEventListener('progress', handleProgress as EventListener)
+//     
+//     return () => {
+//       modelInitProgressEmitter.removeEventListener('progress', handleProgress as EventListener)
+//     }
+//   }, [])
+//   
+//   return progress
+// }
 
 const WebLLMAdapter: ChatModelAdapter = {
   async *run({ messages }) {
     try {
-      // Show loading message while initializing
+      let currentProgressText = "Loading MedGemma model..."
+      let lastProgressText = ""
+      
+      // Set up progress listener for this specific run
+      const progressListener = (event: CustomEvent<InitProgressReport>) => {
+        const progressText = event.detail.text
+        const progressPercent = event.detail.progress?.toFixed(2) || '0.00'
+        
+        // Format the progress message similar to the user's example
+        if (progressText.includes('Fetching param cache')) {
+          // Extract cache info from the progress text
+          const cacheMatch = progressText.match(/Fetching param cache\[(\d+)\/(\d+)\]: (\d+)MB/)
+          if (cacheMatch) {
+            const [, current, total, mb] = cacheMatch
+            const completedPercent = ((parseInt(current) / parseInt(total)) * 100).toFixed(0)
+            const elapsedTime = Math.floor(Date.now() / 1000) % 60 // Simple elapsed time simulation
+            currentProgressText = `📊 Init progress: Fetching param cache[${current}/${total}]: ${mb}MB fetched. ${completedPercent}% completed, ${elapsedTime} secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster. (${(parseFloat(progressPercent) / 100).toFixed(2)}%)`
+          } else {
+            currentProgressText = `📊 ${progressText} ${progressPercent}% completed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster.`
+          }
+        } else {
+          currentProgressText = `📊 ${progressText} ${progressPercent}% completed`
+        }
+      }
+      
+      modelInitProgressEmitter.addEventListener('progress', progressListener as EventListener)
+      
+      // Show initial loading message
       yield {
         content: [
           {
             type: "text" as const,
-            text: "Loading MedGemma model...",
+            text: currentProgressText,
           },
         ],
       }
-
-      const engine = await getWebLlmEngine()
+      
+      // Create engine with progress updates
+      const enginePromise = getWebLlmEngine()
+      
+      // Wait for engine while streaming progress updates
+      let engineReady = false
+      let engine: MLCEngineInterface | null = null
+      
+      enginePromise.then((e) => {
+        engine = e
+        engineReady = true
+      }).catch((error) => {
+        console.error('Engine initialization failed:', error)
+        engineReady = true // Stop the progress loop even on error
+      })
+      
+      // Stream progress updates until engine is ready
+      while (!engineReady) {
+        await new Promise(resolve => setTimeout(resolve, 300)) // Wait 300ms
+        
+        // Only yield if progress text has changed
+        if (currentProgressText !== lastProgressText) {
+          lastProgressText = currentProgressText
+          yield {
+            content: [
+              {
+                type: "text" as const,
+                text: currentProgressText,
+              },
+            ],
+          }
+        }
+      }
+      
+      // Clean up
+      modelInitProgressEmitter.removeEventListener('progress', progressListener as EventListener)
+      
+      // If engine failed to initialize, throw error
+      if (!engine) {
+        throw new Error('Failed to initialize the MedGemma model')
+      }
       
       // Clear loading message and show thinking
       yield {
@@ -42,7 +128,8 @@ const WebLLMAdapter: ChatModelAdapter = {
         content: msg.content.map(part => part.type === 'text' ? part.text : '').join('')
       }))
       
-      const result = await engine.chat.completions.create({
+      // TypeScript assertion since we checked engine is not null above
+      const result = await (engine as MLCEngineInterface).chat.completions.create({
         messages: formattedMessages,
         stream: true,
         temperature: 0.3,

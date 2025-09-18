@@ -3,6 +3,15 @@ import { CreateMLCEngine, type MLCEngineInterface, type InitProgressReport, mode
 
 let enginePromise: Promise<MLCEngineInterface> | null = null
 
+// Event emitter for model initialization progress
+class ModelInitProgressEmitter extends EventTarget {
+  emit(progress: InitProgressReport) {
+    this.dispatchEvent(new CustomEvent('progress', { detail: progress }))
+  }
+}
+
+export const modelInitProgressEmitter = new ModelInitProgressEmitter()
+
 // Reset engine promise to force reinitialization
 export function resetWebLlmEngine() {
   enginePromise = null
@@ -58,7 +67,7 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
   const modelPath = config?.modelBaseUrl ?? DEFAULT_LOCAL_BASE
   const modelUrl = modelPath.startsWith('http') ? modelPath : `${baseUrl}${modelPath.startsWith('/') ? modelPath : '/' + modelPath}`
-  let modelId = config?.modelId ?? 'II-Medical-8B-q4f16_1-MLC'
+  const modelId = config?.modelId ?? 'II-Medical-8B-q4f16_1-MLC'
   
   // Use static subdomain for better CDN performance and caching
   // In production: static.yourdomain.com, in development: localhost:5173
@@ -136,6 +145,7 @@ async function createCustomModelEngine(config?: WebLlmConfig) {
     
     const initProgressCallback = (report: InitProgressReport) => {
       console.log(`📊 Init progress: ${report.text} (${report.progress?.toFixed(2) || 0}%)`)
+      modelInitProgressEmitter.emit(report)
     }
     
     const engine = await CreateMLCEngine(modelId, { 

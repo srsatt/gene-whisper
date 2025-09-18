@@ -713,7 +713,8 @@ export function convertToMutations(resultVariants: ResultVariant[]): any[] {
         source: variant.source,
         matched_genotype: variant.matched_genotype,
         tags: variant.tags,
-        snpData: variant.snpData
+        snpData: variant.snpData,
+        description: variant.description
       };
     });
 }

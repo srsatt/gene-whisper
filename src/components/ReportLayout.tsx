@@ -81,7 +81,7 @@ function MutationCard({ mutation, onDiscuss, isSelected }: MutationCardProps) {
             </span>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {mutation.phenotype}
+            {mutation.description}
           </p>
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-center">
@@ -1076,11 +1076,11 @@ export default function ReportLayout({
                     <div className="bg-white rounded-b-lg border border-t-0 border-purple-100 p-4 shadow-sm">
                       <div className="grid gap-4">
                         {visibleMutations
-                          .filter(
-                            (mutation) =>
-                              mutation.source === "snpedia" &&
-                              mutation.matched_genotype
-                          )
+                          // .filter(
+                          //   (mutation) =>
+                          //     mutation.source === "snpedia" &&
+                          //     mutation.matched_genotype
+                          // )
                           .map((mutation) => (
                             <MutationCard
                               key={mutation.rsid}

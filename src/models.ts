@@ -19,6 +19,7 @@ export interface Mutation {
   raw: string;
   source?: string;
   snpData?: SnpData;
+  description?: string;
   
   // Enhanced fields from structured data
   user_allele?: string;

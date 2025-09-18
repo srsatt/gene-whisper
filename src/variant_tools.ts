@@ -96,26 +96,59 @@ export function parseMyHeritageFile(fileContent: string): Record<string, InputVa
 }
 
 // --- DATABASE LOADING ---
-
 /**
- * Loads and prepares ClinVar database from JSON file.
+ * Loads and prepares ClinVar database from JSON file, enriching it with cluster descriptions.
  * @param fetchWithProgress Optional progress tracking fetch function
  * @returns A record mapping lowercase rsid to ClinVar variant objects
  */
 export async function loadClinvarDatabase(
   fetchWithProgress?: (url: string, phase: string) => Promise<Response>
 ): Promise<Record<string, DatabaseVariant>> {
-  const response = fetchWithProgress
-    ? await fetchWithProgress('/data_files/clinvar.json', 'Loading ClinVar database')
-    : await fetch('/data_files/clinvar.json');
+  // Use the provided fetch function or the default browser fetch
+  const fetcher = fetchWithProgress 
+    ? fetchWithProgress 
+    : (url: string) => fetch(url);
 
-  const clinvarArray = await response.json();
+  // Fetch all three required JSON files concurrently for better performance
+  const [
+    clinvarResponse,
+    rsidMapResponse,
+    clustersResponse
+  ] = await Promise.all([
+    fetcher('/data_files/clinvar.json', 'Loading ClinVar database'),
+    fetcher('/data_files/clinvar_rsid_to_cluster.json', 'Loading ClinVar RSID map'), // Assumed filename
+    fetcher('/data_files/clinvar_clusters.json', 'Loading ClinVar descriptions') // Assumed filename
+  ]);
 
+  const clinvarArray = await clinvarResponse.json();
+  const rsidMapArray: { rsid: string; cluster_id: number }[] = await rsidMapResponse.json();
+  const clustersArray: { cluster_id: number; generated_description: string }[] = await clustersResponse.json();
+
+  // 1. Create a map from cluster_id to generated_description for quick lookups
+  const clusterIdToDescriptionMap = clustersArray.reduce((acc, cluster) => {
+    acc[cluster.cluster_id] = cluster.generated_description;
+    return acc;
+  }, {} as Record<number, string>);
+
+  // 2. Create a map from rsid to cluster_id
+  const rsidToClusterIdMap = rsidMapArray.reduce((acc, item) => {
+    acc[item.rsid.toLowerCase()] = item.cluster_id;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // 3. Build the final clinvarMap, enriching it with the descriptions
   const clinvarMap: Record<string, DatabaseVariant> = {};
-
   for (const variant of clinvarArray) {
     if (variant.rsid && variant.rsid.startsWith('rs')) {
-      clinvarMap[variant.rsid.toLowerCase()] = {
+      const lowerRsid = variant.rsid.toLowerCase();
+      
+      // Find the cluster ID for the current variant's RSID
+      const clusterId = rsidToClusterIdMap[lowerRsid];
+      
+      // Use the cluster ID to find the generated description
+      const generatedDescription = clusterId !== undefined ? clusterIdToDescriptionMap[clusterId] : variant.phenotype || 'No description available';
+
+      clinvarMap[lowerRsid] = {
         rsid: variant.rsid,
         reference_allele: variant.reference_allele,
         alternative_allele: variant.alternative_allele,
@@ -123,7 +156,9 @@ export async function loadClinvarDatabase(
         gene_name: variant.gene_name,
         phenotype: variant.phenotype,
         chrom: variant.chrom,
-        position: variant.position
+        position: variant.position,
+        // Add the new description field
+        description: generatedDescription,
       };
     }
   }
